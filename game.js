@@ -111,6 +111,9 @@ class Enemy {
             ) {
                 this.game.javier.score += 10;
                 document.getElementById('score').textContent = this.game.javier.score;
+
+                // Explode effect
+                this.explode();
                 return true;
             }
         }
@@ -126,6 +129,14 @@ class Enemy {
         }
 
         return this.x + this.width < 0;
+    }
+
+    explode() {
+        const ctx = this.game.ctx;
+        ctx.fillStyle = 'orange';
+        ctx.beginPath();
+        ctx.arc(this.x + this.width / 2, this.y + this.height / 2, 30, 0, Math.PI * 2);
+        ctx.fill();
     }
 
     draw(ctx) {
@@ -147,14 +158,35 @@ class Game {
         this.enemies = [];
         this.enemySpawnTimer = 0;
         this.keys = {};
+        this.isPaused = false;
 
         window.addEventListener('keydown', (e) => this.keys[e.key] = true);
         window.addEventListener('keyup', (e) => this.keys[e.key] = false);
 
+        this.createUI();
         this.gameLoop();
     }
 
+    createUI() {
+        // Pause/Resume Button
+        const pauseButton = document.createElement('button');
+        pauseButton.textContent = 'Pause';
+        pauseButton.onclick = () => {
+            this.isPaused = !this.isPaused;
+            pauseButton.textContent = this.isPaused ? 'Resume' : 'Pause';
+        };
+        document.body.appendChild(pauseButton);
+
+        // Restart Button
+        const restartButton = document.createElement('button');
+        restartButton.textContent = 'Restart';
+        restartButton.onclick = () => window.location.reload();
+        document.body.appendChild(restartButton);
+    }
+
     update() {
+        if (this.isPaused) return;
+
         // Handle input
         if (this.keys['a'] || this.keys['A']) this.javier.speedX = -5;
         else if (this.keys['d'] || this.keys['D']) this.javier.speedX = 5;
@@ -207,6 +239,5 @@ class Game {
         }
     }
 }
-
 // Start the game
 new Game();
