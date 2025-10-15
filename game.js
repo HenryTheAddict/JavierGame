@@ -231,6 +231,18 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   });
 
+  // UI state management
+  function clearAllUIStates() {
+    isPaused = false;
+    isShopOpen = false;
+    startMenu.style.display = "none";
+    pauseMenu.style.display = "none";
+    shopMenu.style.display = "none";
+    deathScreen.style.display = "none";
+    overlay.style.display = "none";
+    document.body.classList.remove("shop-open");
+  }
+
   // Keyboard controls
   const keys = {};
 
@@ -332,11 +344,14 @@ document.addEventListener("DOMContentLoaded", function () {
     coins3D.length = 0;
     damageIndicators.length = 0;
 
+    // Reset UI state
+    isShopOpen = false;
+    shopMenu.style.display = "none";
+    document.body.classList.remove("shop-open");
+
     // Show start menu again
     gameStarted = false;
-    isPaused = false;
-    pauseMenu.style.display = "none";
-    deathScreen.style.display = "none";
+    clearAllUIStates();
     startMenu.style.display = "block";
     overlay.style.display = "block";
     // Hide the start round button
@@ -1488,19 +1503,48 @@ document.addEventListener("DOMContentLoaded", function () {
     enemies.forEach((enemy) => {
       ctx.save();
 
+      // Apply flipping based on enemy type and direction
+      let shouldFlip = false;
+      if (enemy.type === "tank" && enemy.direction === 1) {
+        // Tank coming from left should flip to face player
+        shouldFlip = true;
+      } else if (
+        (enemy.type === "fast" || enemy.type === "mini") &&
+        enemy.direction === -1
+      ) {
+        // Fast and mini enemies coming from right should flip to face player
+        shouldFlip = true;
+      }
+
+      if (shouldFlip) {
+        // Flip horizontally by scaling and translating
+        ctx.translate(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2);
+        ctx.scale(-1, 1);
+        ctx.translate(
+          -(enemy.x + enemy.width / 2),
+          -(enemy.y + enemy.height / 2),
+        );
+      }
+
       // Draw enemy body with type-specific styling
       ctx.fillStyle = enemy.color;
       ctx.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
 
       // Add type-specific visual indicators
       if (enemy.type === "fast") {
-        // Speed lines
+        // Speed lines - trail behind the enemy based on direction
         ctx.strokeStyle = "rgba(255, 255, 255, 0.5)";
         ctx.lineWidth = 1;
         ctx.beginPath();
         for (let j = 0; j < 3; j++) {
-          ctx.moveTo(enemy.x - 5, enemy.y + 10 + j * 10);
-          ctx.lineTo(enemy.x - 15, enemy.y + 10 + j * 10);
+          // If enemy is going right (direction 1), lines go to the left (behind)
+          // If enemy is going left (direction -1), lines go to the right (behind)
+          const startX =
+            enemy.direction === 1 ? enemy.x - 5 : enemy.x + enemy.width + 5;
+          const endX =
+            enemy.direction === 1 ? enemy.x - 15 : enemy.x + enemy.width + 15;
+          ctx.moveTo(startX, enemy.y + 10 + j * 10);
+          ctx.lineTo(endX, enemy.y + 10 + j * 10);
         }
         ctx.stroke();
       } else if (enemy.type === "tank") {
@@ -1551,16 +1595,22 @@ document.addEventListener("DOMContentLoaded", function () {
         ctx.fill();
       }
 
-      // Draw face
+      // Draw face (works with flipped coordinate system)
       ctx.fillStyle = "#000";
-      // Angry eyes
-      ctx.fillRect(enemy.x + 8, enemy.y + 12, 8, 8);
-      ctx.fillRect(enemy.x + 24, enemy.y + 12, 8, 8);
-      // Mouth
+      // Angry eyes - positions adjusted for potential flipping
+      const eyeOffset1 = shouldFlip ? enemy.width - 16 : 8;
+      const eyeOffset2 = shouldFlip ? enemy.width - 32 : 24;
+      ctx.fillRect(enemy.x + eyeOffset1, enemy.y + 12, 8, 8);
+      ctx.fillRect(enemy.x + eyeOffset2, enemy.y + 12, 8, 8);
+
+      // Mouth - adjusted for flipping
+      const mouthOffset1 = shouldFlip ? enemy.width - 10 : 10;
+      const mouthOffset2 = shouldFlip ? enemy.width - 20 : 20;
+      const mouthOffset3 = shouldFlip ? enemy.width - 30 : 30;
       ctx.beginPath();
-      ctx.moveTo(enemy.x + 10, enemy.y + 35);
-      ctx.lineTo(enemy.x + 20, enemy.y + 40);
-      ctx.lineTo(enemy.x + 30, enemy.y + 35);
+      ctx.moveTo(enemy.x + mouthOffset1, enemy.y + 35);
+      ctx.lineTo(enemy.x + mouthOffset2, enemy.y + 40);
+      ctx.lineTo(enemy.x + mouthOffset3, enemy.y + 35);
       ctx.lineWidth = 2;
       ctx.stroke();
 
@@ -2150,8 +2200,10 @@ document.addEventListener("DOMContentLoaded", function () {
     gameStarted = true;
     currentRound = 1;
     enemiesRemaining = 8;
-    startMenu.style.display = "none";
-    overlay.style.display = "none";
+
+    // Clear all UI states and start fresh
+    clearAllUIStates();
+
     // Reset progress bar
     document.getElementById("roundProgressBar").style.width = "0%";
   }
@@ -2228,7 +2280,8 @@ document.addEventListener("DOMContentLoaded", function () {
   `;
   document.head.appendChild(style);
 
-  // Show start menu when game loads
+  // Initialize game with proper UI state
+  clearAllUIStates();
   startMenu.style.display = "block";
   overlay.style.display = "block";
 
