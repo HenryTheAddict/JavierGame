@@ -1,194 +1,246 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Javier The Experience</title>
-    <style>
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: Arial, sans-serif;
-            background-color: #2c3e50;
-            overflow: hidden;
-        }
-        
-        #gameContainer {
-            position: relative;
-            width: 800px;
-            height: 400px;
-            margin: 50px auto;
-        }
-        
-        #gameCanvas {
-            background-color: #3498db;
-            border: 2px solid #2980b9;
-        }
-        
-        #gameUI {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            color: white;
-            font-size: 18px;
-            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
-        }
-        
-        .ui-button {
-            position: absolute;
-            background-color: #3498db;
-            color: white;
-            border: none;
-            padding: 5px 10px;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-        
-        #shopButton {
-            top: 10px;
-            right: 10px;
-            position: absolute;
-        }
-        
-        .start-round-button {
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background-color: #2ecc71;
-            z-index: 10;
-            font-size: 18px;
-            padding: 8px 20px;
-        }
-        
-        .start-round-button:hover {
-            background-color: #27ae60;
-        }
-        
-        /* Progress bar styles */
-        #roundProgressContainer {
-            position: absolute;
-            bottom: 30px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 80%;
-            height: 10px;
-            background-color: rgba(0, 0, 0, 0.3);
-            border-radius: 5px;
-            overflow: hidden;
-            z-index: 5;
-        }
-        
-        #roundProgressBar {
-            height: 100%;
-            width: 0%;
-            background-color: #2ecc71;
-            transition: width 0.3s ease-in-out;
-        }
-        
-        #overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-            display: none;
-        }
-        
-        .menu {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background-color: #2c3e50;
-            padding: 20px;
-            border-radius: 10px;
-            text-align: center;
-            display: none;
-        }
-        
-        .menu h2 {
-            color: #ecf0f1;
-            margin-top: 0;
-        }
-        
-        button {
-            background-color: #3498db;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            margin: 5px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 16px;
-        }
-        
-        button:hover {
-            background-color: #2980b9;
-        }
-        
-        .shop-item {
-            background-color: #34495e;
-            padding: 10px;
-            margin: 10px 0;
-            border-radius: 5px;
-        }
-    </style>
-    <link rel="stylesheet" href="deathScreen.css">
-</head>
-<body>
-    <div id="gameContainer">
-        <canvas id="gameCanvas" width="800" height="400"></canvas>
-        
-        <div id="gameUI">
-            <div style="position: absolute; top: 10px; left: 10px;">
-                <div>Score: <span id="score">0</span></div>
-                <div>Coins: <span id="coins">0</span></div>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Javier The Experience</title>
+        <style>
+            body {
+                margin: 0;
+                padding: 0;
+                font-family: Arial, sans-serif;
+                background-color: #2c3e50;
+                overflow: hidden;
+            }
+
+            #gameContainer {
+                position: relative;
+                width: 800px;
+                height: 400px;
+                margin: 50px auto;
+            }
+
+            #gameCanvas {
+                background-color: #3498db;
+                border: 2px solid #2980b9;
+            }
+
+            #gameUI {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                color: white;
+                font-size: 18px;
+                text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+            }
+
+            #controlsHint {
+                position: absolute;
+                bottom: 60px;
+                right: 10px;
+                font-size: 12px;
+                color: rgba(255, 255, 255, 0.7);
+                text-align: right;
+            }
+
+            .ui-button {
+                position: absolute;
+                background-color: #3498db;
+                color: white;
+                border: none;
+                padding: 5px 10px;
+                border-radius: 5px;
+                cursor: pointer;
+            }
+
+            #shopButton {
+                top: 10px;
+                right: 10px;
+                position: absolute;
+            }
+
+            .start-round-button {
+                bottom: 20px;
+                left: 50%;
+                transform: translateX(-50%);
+                background-color: #2ecc71;
+                z-index: 10;
+                font-size: 18px;
+                padding: 8px 20px;
+            }
+
+            .start-round-button:hover {
+                background-color: #27ae60;
+            }
+
+            /* Progress bar styles */
+            #roundProgressContainer {
+                position: absolute;
+                bottom: 30px;
+                left: 50%;
+                transform: translateX(-50%);
+                width: 80%;
+                height: 10px;
+                background-color: rgba(0, 0, 0, 0.3);
+                border-radius: 5px;
+                overflow: hidden;
+                z-index: 5;
+            }
+
+            #roundProgressBar {
+                height: 100%;
+                width: 0%;
+                background-color: #2ecc71;
+                transition: width 0.3s ease-in-out;
+            }
+
+            #overlay {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background-color: rgba(0, 0, 0, 0.5);
+                display: none;
+            }
+
+            .menu {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background-color: #2c3e50;
+                padding: 20px;
+                border-radius: 10px;
+                text-align: center;
+                display: none;
+            }
+
+            .menu h2 {
+                color: #ecf0f1;
+                margin-top: 0;
+            }
+
+            button {
+                background-color: #3498db;
+                color: white;
+                border: none;
+                padding: 10px 20px;
+                margin: 5px;
+                border-radius: 5px;
+                cursor: pointer;
+                font-size: 16px;
+            }
+
+            button:hover {
+                background-color: #2980b9;
+            }
+
+            .shop-item {
+                background-color: #34495e;
+                padding: 10px;
+                margin: 10px 0;
+                border-radius: 5px;
+            }
+        </style>
+        <link rel="stylesheet" href="deathScreen.css" />
+    </head>
+    <body>
+        <div id="gameContainer">
+            <canvas id="gameCanvas" width="800" height="400"></canvas>
+
+            <div id="gameUI">
+                <div style="position: absolute; top: 10px; left: 10px">
+                    <div>Score: <span id="score">0</span></div>
+                    <div>Coins: <span id="coins">0</span></div>
+                </div>
+                <button id="shopButton" class="ui-button">Shop</button>
+                <button id="startRoundButton" class="start-round-button">
+                    Start Round
+                </button>
+                <div id="roundProgressContainer">
+                    <div id="roundProgressBar"></div>
+                </div>
+                <div id="controlsHint">
+                    <div>J: Punch | H: Lightning (charge)</div>
+                    <div>S: Shop | Esc: Pause</div>
+                </div>
             </div>
-            <button id="shopButton" class="ui-button">Shop</button>
-            <button id="startRoundButton" class="start-round-button">Start Round</button>
-            <div id="roundProgressContainer">
-                <div id="roundProgressBar"></div>
+
+            <div id="overlay"></div>
+
+            <div id="startMenu" class="menu">
+                <h2>Javier The Experience</h2>
+                <div
+                    style="
+                        text-align: left;
+                        color: #ecf0f1;
+                        margin: 20px 0;
+                        font-size: 14px;
+                    "
+                >
+                    <h3 style="color: #3498db; text-align: center">
+                        Controls:
+                    </h3>
+                    <p><strong>A/D or Arrow Keys:</strong> Move left/right</p>
+                    <p><strong>Space or Up Arrow:</strong> Jump</p>
+                    <p><strong>J:</strong> Punch attack</p>
+                    <p>
+                        <strong>H:</strong> Lightning strike (charges from
+                        punches, kills nearest enemy)
+                    </p>
+                    <p><strong>S:</strong> Open shop</p>
+                    <p><strong>Escape:</strong> Pause game</p>
+                </div>
+                <button id="startButton">Start Experience</button>
+            </div>
+
+            <div id="pauseMenu" class="menu">
+                <h2>Game Paused</h2>
+                <button id="resumeButton">Resume</button>
+                <button id="restartButton">Restart</button>
+            </div>
+
+            <div id="shopMenu" class="menu">
+                <h2>Shop</h2>
+                <div class="shop-item">
+                    <p>Strength Upgrade (+5 damage)</p>
+                    <button
+                        class="buy-button"
+                        data-item="strength"
+                        data-cost="10"
+                    >
+                        Buy (10 coins)
+                    </button>
+                </div>
+                <div class="shop-item">
+                    <p>Speed Upgrade (+10% speed)</p>
+                    <button class="buy-button" data-item="speed" data-cost="15">
+                        Buy (15 coins)
+                    </button>
+                </div>
+                <div class="shop-item">
+                    <p>Health Upgrade (+20 health)</p>
+                    <button
+                        class="buy-button"
+                        data-item="health"
+                        data-cost="20"
+                    >
+                        Buy (20 coins)
+                    </button>
+                </div>
+                <button id="closeShopButton">Close Shop</button>
+            </div>
+
+            <div id="deathScreen" class="death-screen">
+                <h2>YOU DIED</h2>
+                <button id="deathRestartButton" class="restart-button">
+                    RESTART
+                </button>
             </div>
         </div>
-        
-        <div id="overlay"></div>
-        
-        <div id="startMenu" class="menu">
-            <h2>Javier The Experience</h2>
-            <button id="startButton">Start Experience</button>
-        </div>
-        
-        <div id="pauseMenu" class="menu">
-            <h2>Game Paused</h2>
-            <button id="resumeButton">Resume</button>
-            <button id="restartButton">Restart</button>
-        </div>
-        
-        <div id="shopMenu" class="menu">
-            <h2>Shop</h2>
-            <div class="shop-item">
-                <p>Strength Upgrade (+5 damage)</p>
-                <button class="buy-button" data-item="strength" data-cost="10">Buy (10 coins)</button>
-            </div>
-            <div class="shop-item">
-                <p>Speed Upgrade (+10% speed)</p>
-                <button class="buy-button" data-item="speed" data-cost="15">Buy (15 coins)</button>
-            </div>
-            <div class="shop-item">
-                <p>Health Upgrade (+20 health)</p>
-                <button class="buy-button" data-item="health" data-cost="20">Buy (20 coins)</button>
-            </div>
-            <button id="closeShopButton">Close Shop</button>
-        </div>
-        
-        <div id="deathScreen" class="death-screen">
-            <h2>YOU DIED</h2>
-            <button id="deathRestartButton" class="restart-button">RESTART</button>
-        </div>
-    </div>
-    
-    <script src="game.js"></script>
-</body>
+
+        <script src="game.js"></script>
+    </body>
 </html>
