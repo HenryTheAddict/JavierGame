@@ -110,38 +110,243 @@
                 top: 50%;
                 left: 50%;
                 transform: translate(-50%, -50%);
-                background-color: #2c3e50;
-                padding: 20px;
-                border-radius: 10px;
+                background: rgba(44, 62, 80, 0.95);
+                backdrop-filter: blur(20px);
+                padding: 30px;
+                border-radius: 20px;
                 text-align: center;
                 display: none;
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+                animation: fadeInScale 0.3s ease-out;
+            }
+
+            @keyframes fadeInScale {
+                from {
+                    opacity: 0;
+                    transform: translate(-50%, -50%) scale(0.9);
+                }
+                to {
+                    opacity: 1;
+                    transform: translate(-50%, -50%) scale(1);
+                }
             }
 
             .menu h2 {
                 color: #ecf0f1;
                 margin-top: 0;
+                font-size: 28px;
+                font-weight: 700;
+                text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+                background: linear-gradient(45deg, #3498db, #9b59b6);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                background-clip: text;
+                margin-bottom: 20px;
             }
 
             button {
-                background-color: #3498db;
+                background: #3498db;
                 color: white;
-                border: none;
-                padding: 10px 20px;
-                margin: 5px;
-                border-radius: 5px;
+                border: 2px solid #2980b9;
+                padding: 12px 24px;
+                margin: 8px;
+                border-radius: 8px;
                 cursor: pointer;
                 font-size: 16px;
+                font-weight: 600;
+                transition: all 0.3s ease;
             }
 
             button:hover {
-                background-color: #2980b9;
+                background: #2980b9;
+                border-color: #1f618d;
+                transform: translateY(-2px);
+            }
+
+            button:active {
+                transform: translateY(0px);
+                background: #1f618d;
+            }
+
+            #closeShopButton:hover {
+                background: #c0392b !important;
+                border-color: #a93226 !important;
+                transform: translateY(-2px) !important;
+            }
+
+            .shop-container {
+                display: flex;
+                flex-direction: column;
+                gap: 15px;
+                width: 100%;
+                max-width: 600px;
             }
 
             .shop-item {
-                background-color: #34495e;
-                padding: 10px;
+                background: #34495e;
+                padding: 20px;
+                border-radius: 8px;
+                border: 2px solid #2c3e50;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                transition: all 0.3s ease;
+            }
+
+            .shop-item:hover {
+                background: #3c5469;
+                border-color: #3498db;
+            }
+
+            .shop-item:nth-child(1) {
+                background: #e74c3c;
+                border-color: #c0392b;
+            }
+
+            .shop-item:nth-child(2) {
+                background: #f39c12;
+                border-color: #e67e22;
+            }
+
+            .shop-item:nth-child(3) {
+                background: #27ae60;
+                border-color: #229954;
+            }
+
+            .shop-item:nth-child(1):hover {
+                background: #ec7063;
+            }
+
+            .shop-item:nth-child(2):hover {
+                background: #f7b731;
+            }
+
+            .shop-item:nth-child(3):hover {
+                background: #58d68d;
+            }
+
+            .shop-info {
+                display: flex;
+                flex-direction: column;
+                flex: 1;
+            }
+
+            .shop-item h3 {
+                color: #fff;
+                margin: 0 0 5px 0;
+                font-size: 20px;
+                font-weight: 700;
+                text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+            }
+
+            .shop-item p {
+                color: rgba(255, 255, 255, 0.9);
+                margin: 0;
+                font-size: 16px;
+                text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+            }
+
+            .shop-item button {
+                background: #2c3e50;
+                border: 2px solid #34495e;
+                color: white;
+                padding: 12px 20px;
+                border-radius: 6px;
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                font-size: 16px;
+                min-width: 140px;
+            }
+
+            .shop-item button:hover {
+                background: #34495e;
+                border-color: #3498db;
+                transform: translateY(-1px);
+            }
+
+            .shop-item button:disabled {
+                background: #7f8c8d;
+                border-color: #95a5a6;
+                cursor: not-allowed;
+                transform: none;
+            }
+
+            .controls-toggle {
+                background: #3498db;
+                border: 2px solid #2980b9;
+                color: white;
+                padding: 10px 20px;
+                border-radius: 8px;
+                font-size: 14px;
+                cursor: pointer;
                 margin: 10px 0;
-                border-radius: 5px;
+                transition: all 0.3s ease;
+            }
+
+            .controls-toggle:hover {
+                background: #2980b9;
+                transform: translateY(-2px);
+            }
+
+            .controls-content {
+                max-height: 0;
+                overflow: hidden;
+                transition: max-height 0.3s ease-out;
+                opacity: 0;
+            }
+
+            .controls-content.expanded {
+                max-height: 300px;
+                opacity: 1;
+                transition:
+                    max-height 0.3s ease-in,
+                    opacity 0.3s ease-in;
+            }
+
+            .ui-button {
+                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                backdrop-filter: blur(10px);
+                border: 1px solid rgba(255, 255, 255, 0.2);
+            }
+
+            .ui-button:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 8px 25px rgba(52, 152, 219, 0.4);
+            }
+
+            #controlsHint {
+                animation: fadeInUp 2s ease-out;
+                animation-delay: 1s;
+                animation-fill-mode: backwards;
+            }
+
+            @keyframes fadeInUp {
+                from {
+                    opacity: 0;
+                    transform: translateY(20px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+
+            .start-round-button {
+                animation: pulse 2s infinite;
+            }
+
+            @keyframes pulse {
+                0% {
+                    box-shadow: 0 0 0 0 rgba(46, 204, 113, 0.7);
+                }
+                70% {
+                    box-shadow: 0 0 0 10px rgba(46, 204, 113, 0);
+                }
+                100% {
+                    box-shadow: 0 0 0 0 rgba(46, 204, 113, 0);
+                }
             }
         </style>
         <link rel="stylesheet" href="deathScreen.css" />
@@ -172,26 +377,33 @@
 
             <div id="startMenu" class="menu">
                 <h2>Javier The Experience</h2>
-                <div
-                    style="
-                        text-align: left;
-                        color: #ecf0f1;
-                        margin: 20px 0;
-                        font-size: 14px;
-                    "
-                >
-                    <h3 style="color: #3498db; text-align: center">
-                        Controls:
-                    </h3>
-                    <p><strong>A/D or Arrow Keys:</strong> Move left/right</p>
-                    <p><strong>Space or Up Arrow:</strong> Jump</p>
-                    <p><strong>J:</strong> Punch attack</p>
-                    <p>
-                        <strong>H:</strong> Lightning strike (charges from
-                        punches, kills nearest enemy)
-                    </p>
-                    <p><strong>S:</strong> Open shop</p>
-                    <p><strong>Escape:</strong> Pause game</p>
+                <button id="controlsToggle" class="controls-toggle">
+                    🎮 Show Controls
+                </button>
+                <div id="controlsContent" class="controls-content">
+                    <div
+                        style="
+                            text-align: left;
+                            color: #ecf0f1;
+                            margin: 20px 0;
+                            font-size: 14px;
+                        "
+                    >
+                        <h3 style="color: #3498db; text-align: center">
+                            Controls:
+                        </h3>
+                        <p>
+                            <strong>A/D or Arrow Keys:</strong> Move left/right
+                        </p>
+                        <p><strong>Space or Up Arrow:</strong> Jump</p>
+                        <p><strong>J:</strong> Punch attack</p>
+                        <p>
+                            <strong>H:</strong> Lightning strike (charges from
+                            punches, kills nearest enemy)
+                        </p>
+                        <p><strong>S:</strong> Open shop</p>
+                        <p><strong>Escape:</strong> Pause game</p>
+                    </div>
                 </div>
                 <button id="startButton">Start Experience</button>
             </div>
@@ -202,35 +414,80 @@
                 <button id="restartButton">Restart</button>
             </div>
 
-            <div id="shopMenu" class="menu">
-                <h2>Shop</h2>
-                <div class="shop-item">
-                    <p>Strength Upgrade (+5 damage)</p>
-                    <button
-                        class="buy-button"
-                        data-item="strength"
-                        data-cost="10"
-                    >
-                        Buy (10 coins)
-                    </button>
+            <div
+                id="shopMenu"
+                class="menu"
+                style="
+                    background: #2c3e50;
+                    border: 3px solid #34495e;
+                    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+                    width: 650px;
+                    max-width: 90vw;
+                "
+            >
+                <h2
+                    style="
+                        color: #ecf0f1;
+                        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+                        margin-bottom: 30px;
+                        font-size: 32px;
+                    "
+                >
+                    💰 UPGRADES SHOP
+                </h2>
+                <div class="shop-container">
+                    <div class="shop-item">
+                        <div class="shop-info">
+                            <h3>💪 Strength Upgrade</h3>
+                            <p>Increase punch damage by +5 points</p>
+                        </div>
+                        <button
+                            class="buy-button"
+                            data-item="strength"
+                            data-cost="10"
+                        >
+                            Buy (10 coins)
+                        </button>
+                    </div>
+                    <div class="shop-item">
+                        <div class="shop-info">
+                            <h3>⚡ Speed Upgrade</h3>
+                            <p>Boost movement speed by +10%</p>
+                        </div>
+                        <button
+                            class="buy-button"
+                            data-item="speed"
+                            data-cost="15"
+                        >
+                            Buy (15 coins)
+                        </button>
+                    </div>
+                    <div class="shop-item">
+                        <div class="shop-info">
+                            <h3>❤️ Health Upgrade</h3>
+                            <p>Increase maximum health by +20 HP</p>
+                        </div>
+                        <button
+                            class="buy-button"
+                            data-item="health"
+                            data-cost="20"
+                        >
+                            Buy (20 coins)
+                        </button>
+                    </div>
                 </div>
-                <div class="shop-item">
-                    <p>Speed Upgrade (+10% speed)</p>
-                    <button class="buy-button" data-item="speed" data-cost="15">
-                        Buy (15 coins)
-                    </button>
-                </div>
-                <div class="shop-item">
-                    <p>Health Upgrade (+20 health)</p>
-                    <button
-                        class="buy-button"
-                        data-item="health"
-                        data-cost="20"
-                    >
-                        Buy (20 coins)
-                    </button>
-                </div>
-                <button id="closeShopButton">Close Shop</button>
+                <button
+                    id="closeShopButton"
+                    style="
+                        background: #e74c3c;
+                        border: 2px solid #c0392b;
+                        margin-top: 30px;
+                        padding: 15px 30px;
+                        font-size: 18px;
+                    "
+                >
+                    ✖️ Close Shop
+                </button>
             </div>
 
             <div id="deathScreen" class="death-screen">
@@ -241,6 +498,80 @@
             </div>
         </div>
 
+        <script>
+            // Controls toggle functionality
+            document.addEventListener("DOMContentLoaded", function () {
+                const controlsToggle =
+                    document.getElementById("controlsToggle");
+                const controlsContent =
+                    document.getElementById("controlsContent");
+                let isExpanded = false;
+
+                controlsToggle.addEventListener("click", function () {
+                    isExpanded = !isExpanded;
+
+                    if (isExpanded) {
+                        controlsContent.classList.add("expanded");
+                        controlsToggle.textContent = "🎮 Hide Controls";
+                        controlsToggle.style.background = "#e74c3c";
+                        controlsToggle.style.borderColor = "#c0392b";
+                    } else {
+                        controlsContent.classList.remove("expanded");
+                        controlsToggle.textContent = "🎮 Show Controls";
+                        controlsToggle.style.background = "#3498db";
+                        controlsToggle.style.borderColor = "#2980b9";
+                    }
+                });
+            });
+
+            // Add CSS for shop animation
+            const shopStyle = document.createElement("style");
+            shopStyle.textContent = `
+                @keyframes shopSlideIn {
+                    from {
+                        opacity: 0;
+                        transform: translate(-50%, -50%) scale(0.95);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translate(-50%, -50%) scale(1);
+                    }
+                }
+
+                .menu:not(#startMenu) {
+                    animation: shopSlideIn 0.3s ease-out;
+                }
+
+                .shop-item {
+                    animation: slideInFromTop 0.4s ease-out forwards;
+                    opacity: 0;
+                }
+
+                .shop-item:nth-child(1) { animation-delay: 0.1s; }
+                .shop-item:nth-child(2) { animation-delay: 0.2s; }
+                .shop-item:nth-child(3) { animation-delay: 0.3s; }
+
+                @keyframes slideInFromTop {
+                    from {
+                        opacity: 0;
+                        transform: translateY(-20px);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateY(0);
+                    }
+                }
+
+                #gameCanvas {
+                    transition: filter 0.3s ease;
+                }
+
+                body.shop-open #gameCanvas {
+                    filter: blur(2px) brightness(0.8);
+                }
+            `;
+            document.head.appendChild(shopStyle);
+        </script>
         <script src="game.js"></script>
     </body>
 </html>

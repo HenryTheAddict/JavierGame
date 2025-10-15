@@ -193,16 +193,39 @@ document.addEventListener("DOMContentLoaded", function () {
         coins -= cost;
         upgradePlayer(item);
         coinsElement.textContent = coins;
-        button.textContent = "Purchased!";
+
+        // Modern success animation
+        button.style.transform = "scale(0.95)";
+        button.style.background = "#2ecc71";
+        button.innerHTML = "✅ Purchased!";
         button.disabled = true;
+
+        // Create purchase success particles
+        createPurchaseParticles(button);
+
+        // Animate coin counter
+        animateCoinCounter();
+
         setTimeout(() => {
-          button.textContent = `Buy (${cost} coins)`;
+          button.style.transform = "scale(1)";
+          button.style.background = "#2c3e50";
+          button.innerHTML = `Buy (${cost} coins)`;
           button.disabled = false;
         }, 2000);
       } else {
-        button.textContent = "Not enough coins!";
+        // Enhanced failure animation
+        button.style.transform = "scale(0.95)";
+        button.style.background = "#e74c3c";
+        button.innerHTML = "❌ Not enough coins!";
+
+        // Shake animation
+        button.style.animation = "shake 0.5s ease-in-out";
+
         setTimeout(() => {
-          button.textContent = `Buy (${cost} coins)`;
+          button.style.transform = "scale(1)";
+          button.style.background = "#2c3e50";
+          button.innerHTML = `Buy (${cost} coins)`;
+          button.style.animation = "";
         }, 1000);
       }
     });
@@ -269,9 +292,12 @@ document.addEventListener("DOMContentLoaded", function () {
     shopMenu.style.display = isShopOpen ? "block" : "none";
     overlay.style.display = isShopOpen ? "block" : "none";
 
+    // Add/remove blur effect
     if (isShopOpen) {
+      document.body.classList.add("shop-open");
       isPaused = true;
     } else {
+      document.body.classList.remove("shop-open");
       isPaused = false;
       // Removed the extra requestAnimationFrame call to prevent speed-up bug
     }
@@ -2134,6 +2160,73 @@ document.addEventListener("DOMContentLoaded", function () {
   if (coinsElement) {
     coinsElement.textContent = coins;
   }
+
+  // Purchase particle effects
+  function createPurchaseParticles(button) {
+    const rect = button.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+
+    for (let i = 0; i < 12; i++) {
+      const particle = document.createElement("div");
+      particle.style.position = "fixed";
+      particle.style.left = centerX + "px";
+      particle.style.top = centerY + "px";
+      particle.style.width = "8px";
+      particle.style.height = "8px";
+      particle.style.background = "#f39c12";
+      particle.style.borderRadius = "50%";
+      particle.style.pointerEvents = "none";
+      particle.style.zIndex = "9999";
+      particle.innerHTML = "🪙";
+      particle.style.fontSize = "8px";
+
+      document.body.appendChild(particle);
+
+      const angle = (i / 12) * Math.PI * 2;
+      const distance = 50 + Math.random() * 30;
+      const endX = centerX + Math.cos(angle) * distance;
+      const endY = centerY + Math.sin(angle) * distance;
+
+      particle.animate(
+        [
+          { transform: "translate(0, 0) scale(1)", opacity: 1 },
+          {
+            transform: `translate(${endX - centerX}px, ${endY - centerY}px) scale(0)`,
+            opacity: 0,
+          },
+        ],
+        {
+          duration: 800,
+          easing: "ease-out",
+        },
+      ).onfinish = () => particle.remove();
+    }
+  }
+
+  function animateCoinCounter() {
+    const coinElement = document.getElementById("coins");
+    coinElement.style.transform = "scale(1.2)";
+    coinElement.style.color = "#f39c12";
+    coinElement.style.textShadow = "0 0 10px #f39c12";
+
+    setTimeout(() => {
+      coinElement.style.transform = "scale(1)";
+      coinElement.style.color = "white";
+      coinElement.style.textShadow = "1px 1px 2px rgba(0, 0, 0, 0.5)";
+    }, 300);
+  }
+
+  // Add shake animation keyframes to document
+  const style = document.createElement("style");
+  style.textContent = `
+    @keyframes shake {
+      0%, 100% { transform: translateX(0) scale(1); }
+      25% { transform: translateX(-5px) scale(0.95); }
+      75% { transform: translateX(5px) scale(0.95); }
+    }
+  `;
+  document.head.appendChild(style);
 
   // Show start menu when game loads
   startMenu.style.display = "block";
