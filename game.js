@@ -1,4 +1,3 @@
-
 // Make sure the DOM is fully loaded before accessing elements
 document.addEventListener('DOMContentLoaded', function() {
     // Game setup
