@@ -1,14 +1,14 @@
-# Javier_Experience
-JavierGame_is_a_web_based_game_built_using_JavaScript_and_HTML.
+# JavierExperiance
+J a vierGame is a web-based game built using JavaScript and HTML.
 
 ## Features
-- **Dynamic_Gameplay**: monkey.
-- **Responsive_Design**: Works_fast_on_chromeos_lol.
-- **Lightweight**: its_small.
+- **Dynamic Gameplay**: monkey.
+- **Responsive Design**: Works fast on chromeos lol.
+- **Lightweight**: its small.
 
 ## Installation
-1. Clone_the_repository:
+1. Clone the repository:
    ```bash
    git clone https://github.com/HenryTheAddict/JavierGame.git
-2. Open_the_html.
-3. Wow
+2. Open the html.
+3. wow
