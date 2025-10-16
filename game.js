@@ -92,7 +92,7 @@ document.addEventListener("DOMContentLoaded", function () {
     {
       name: "basic",
       color: "#e74c3c",
-      health: 20,
+      health: 40,
       speed: 1,
       jumpForce: 8,
       size: { width: 40, height: 50 },
@@ -109,8 +109,8 @@ document.addEventListener("DOMContentLoaded", function () {
     },
     {
       name: "tank",
-      color: "#9b59b6",
-      health: 40,
+      color: "#59b66f",
+      health: 80,
       speed: 0.4,
       jumpForce: 6,
       size: { width: 50, height: 60 },
@@ -118,8 +118,8 @@ document.addEventListener("DOMContentLoaded", function () {
     },
     {
       name: "jumper",
-      color: "#2ecc71",
-      health: 18,
+      color: "#c92ecc",
+      health: 10,
       speed: 1.2,
       jumpForce: 15,
       size: { width: 38, height: 48 },
