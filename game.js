@@ -111,7 +111,7 @@ document.addEventListener("DOMContentLoaded", function () {
       name: "tank",
       color: "#9b59b6",
       health: 40,
-      speed: 0.8,
+      speed: 0.4,
       jumpForce: 6,
       size: { width: 50, height: 60 },
       points: 25,
@@ -128,7 +128,7 @@ document.addEventListener("DOMContentLoaded", function () {
     {
       name: "mini",
       color: "#1abc9c",
-      health: 12,
+      health: 2,
       speed: 3,
       jumpForce: 10,
       size: { width: 25, height: 35 },
@@ -152,7 +152,7 @@ document.addEventListener("DOMContentLoaded", function () {
   const screenShake = {
     x: 0,
     y: 0,
-    intensity: 0,
+    intensity: 1,
     duration: 0,
   };
 
@@ -219,7 +219,7 @@ document.addEventListener("DOMContentLoaded", function () {
         button.innerHTML = "❌ Not enough coins!";
 
         // Shake animation
-        button.style.animation = "shake 0.5s ease-in-out";
+        button.style.animation = "shake 0.7s ease-in-out";
 
         setTimeout(() => {
           button.style.transform = "scale(1)";
@@ -269,7 +269,7 @@ document.addEventListener("DOMContentLoaded", function () {
       player.isPunching = true;
       setTimeout(() => {
         player.isPunching = false;
-      }, 150); // Reduced from 300ms to 150ms for faster attacking
+      }, 125); // Reduced from 300ms to 150ms for faster attacking
 
       // Check for enemy hits
       checkPunchHits();
@@ -604,7 +604,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   function createDeathAnimation(x, y) {
     const particles = [];
-    const particleCount = 30; // Doubled particle count
+    const particleCount = 60; // Doubled particle count
 
     // Blood color variations
     const bloodColors = ["#e74c3c", "#c0392b", "#a93226", "#922b21", "#7b241c"];
@@ -1491,7 +1491,7 @@ document.addEventListener("DOMContentLoaded", function () {
       ctx.fillStyle = "#fff";
       ctx.font = "10px Arial";
       ctx.textAlign = "center";
-      ctx.fillText("⚡READY⚡", player.x + player.width / 2, meterY - 3);
+      ctx.fillText("⚡Charged⚡", player.x + player.width / 2, meterY - 3);
     }
 
     ctx.restore();
@@ -1739,7 +1739,7 @@ document.addEventListener("DOMContentLoaded", function () {
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.fillText(
-        "RIP",
+        "☠",
         grave.x + grave.width / 2,
         grave.y + grave.yOffset + 15,
       );
