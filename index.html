@@ -345,6 +345,190 @@
                     box-shadow: 0 0 0 0 rgba(46, 204, 113, 0);
                 }
             }
+
+            /* Settings Panel Styles */
+            .settings-container {
+                display: flex;
+                flex-direction: column;
+                gap: 15px;
+                max-width: 500px;
+                margin: 20px auto;
+            }
+
+            .setting-category {
+                background: rgba(52, 73, 94, 0.2);
+                border-radius: 12px;
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                overflow: hidden;
+            }
+
+            .category-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 15px 20px;
+                background: rgba(52, 73, 94, 0.4);
+                cursor: pointer;
+                transition: all 0.3s ease;
+                user-select: none;
+            }
+
+            .category-header:hover {
+                background: rgba(52, 73, 94, 0.6);
+            }
+
+            .category-header h3 {
+                color: #ffffff;
+                margin: 0;
+                font-size: 18px;
+                font-weight: 600;
+            }
+
+            .collapse-icon {
+                color: #3498db;
+                font-size: 16px;
+                transition: transform 0.3s ease;
+            }
+
+            .category-header.collapsed .collapse-icon {
+                transform: rotate(-90deg);
+            }
+
+            .category-content {
+                max-height: 500px;
+                overflow: hidden;
+                transition:
+                    max-height 0.4s ease-out,
+                    padding 0.4s ease-out;
+                padding: 15px 20px;
+            }
+
+            .category-content.collapsed {
+                max-height: 0;
+                padding: 0 20px;
+            }
+
+            .setting-item {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 15px 0;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            }
+
+            .setting-item:last-child {
+                border-bottom: none;
+            }
+
+            .setting-info {
+                flex: 1;
+            }
+
+            .setting-info h4 {
+                color: #ffffff;
+                margin: 0 0 5px 0;
+                font-size: 16px;
+                font-weight: 600;
+            }
+
+            .setting-info p {
+                color: rgba(255, 255, 255, 0.7);
+                margin: 0;
+                font-size: 14px;
+            }
+
+            .toggle-switch {
+                position: relative;
+                display: inline-block;
+                width: 60px;
+                height: 34px;
+                margin-left: 15px;
+            }
+
+            .toggle-switch input {
+                opacity: 0;
+                width: 0;
+                height: 0;
+            }
+
+            .slider {
+                position: absolute;
+                cursor: pointer;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background-color: #7f8c8d;
+                transition: 0.4s;
+                border-radius: 34px;
+            }
+
+            .slider:before {
+                position: absolute;
+                content: "";
+                height: 26px;
+                width: 26px;
+                left: 4px;
+                bottom: 4px;
+                background-color: white;
+                transition: 0.4s;
+                border-radius: 50%;
+            }
+
+            input:checked + .slider {
+                background-color: #2196f3;
+            }
+
+            input:checked + .slider:before {
+                transform: translateX(26px);
+            }
+
+            .range-slider {
+                display: flex;
+                align-items: center;
+                gap: 15px;
+                margin-left: 15px;
+            }
+
+            .range-slider input[type="range"] {
+                width: 120px;
+                height: 8px;
+                border-radius: 5px;
+                background: #7f8c8d;
+                outline: none;
+                opacity: 0.7;
+                transition: opacity 0.2s;
+            }
+
+            .range-slider input[type="range"]:hover {
+                opacity: 1;
+            }
+
+            .range-slider input[type="range"]::-webkit-slider-thumb {
+                appearance: none;
+                width: 20px;
+                height: 20px;
+                border-radius: 50%;
+                background: #3498db;
+                cursor: pointer;
+            }
+
+            .range-slider input[type="range"]::-moz-range-thumb {
+                width: 20px;
+                height: 20px;
+                border-radius: 50%;
+                background: #3498db;
+                cursor: pointer;
+                border: none;
+            }
+
+            .range-value {
+                display: inline-block;
+                color: #3498db;
+                font-weight: bold;
+                min-width: 30px;
+                text-align: center;
+            }
         </style>
         <link rel="stylesheet" href="deathScreen.css" />
     </head>
@@ -355,6 +539,7 @@
             <div id="gameUI">
                 <div style="position: absolute; top: 10px; left: 10px">
                     <div>Score: <span id="score">0</span></div>
+                    <div>High Score: <span id="highScore">0</span></div>
                     <div>Coins: <span id="coins">0</span></div>
                 </div>
                 <button id="shopButton" class="ui-button">Shop</button>
@@ -374,6 +559,16 @@
 
             <div id="startMenu" class="menu">
                 <h2>Javier The Experience</h2>
+                <div
+                    style="
+                        margin: 15px 0;
+                        color: #f39c12;
+                        font-size: 18px;
+                        font-weight: bold;
+                    "
+                >
+                    🏆 High Score: <span id="menuHighScore">0</span>
+                </div>
                 <button id="controlsToggle" class="controls-toggle">
                     🎮 Show Controls
                 </button>
@@ -399,16 +594,104 @@
                             punches, kills nearest enemy)
                         </p>
                         <p><strong>S:</strong> Open shop</p>
-                        <p><strong>Escape:</strong> Pause game</p>
+                        <p><strong>Escape:</strong> Pause</p>
                     </div>
                 </div>
                 <button id="startButton">Start Experience</button>
+                <button id="settingsButton">⚙️ Settings</button>
             </div>
 
             <div id="pauseMenu" class="menu">
                 <h2>Experience Paused</h2>
                 <button id="resumeButton">Resume</button>
                 <button id="restartButton">Restart</button>
+                <button id="pauseSettingsButton">⚙️ Settings</button>
+            </div>
+
+            <div id="settingsMenu" class="menu">
+                <h2>⚙️ Settings</h2>
+                <div class="settings-container">
+                    <div class="setting-category">
+                        <div
+                            class="category-header collapsed"
+                            data-category="visual"
+                        >
+                            <h3>🎨 Visual Effects</h3>
+                            <span class="collapse-icon">▶</span>
+                        </div>
+                        <div
+                            class="category-content collapsed"
+                            id="visual-content"
+                        >
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <h4>🩸 Blood Effects</h4>
+                                    <p>Toggle blood particle effects on/off</p>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input
+                                        type="checkbox"
+                                        id="bloodToggle"
+                                        checked
+                                    />
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <h4>🔢 Blood Particle Count</h4>
+                                    <p>
+                                        Adjust the number of blood particles
+                                        (1-50)
+                                    </p>
+                                </div>
+                                <div class="range-slider">
+                                    <input
+                                        type="range"
+                                        id="bloodCountSlider"
+                                        min="1"
+                                        max="50"
+                                        value="30"
+                                    />
+                                    <span
+                                        class="range-value"
+                                        id="bloodCountValue"
+                                        >30</span
+                                    >
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="setting-category">
+                        <div
+                            class="category-header collapsed"
+                            data-category="gameplay"
+                        >
+                            <h3>🎮 Gameplay</h3>
+                            <span class="collapse-icon">▶</span>
+                        </div>
+                        <div
+                            class="category-content collapsed"
+                            id="gameplay-content"
+                        >
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <h4>📈 Screen Shake</h4>
+                                    <p>Toggle screen shake effects on/off</p>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input
+                                        type="checkbox"
+                                        id="screenShakeToggle"
+                                        checked
+                                    />
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <button id="closeSettingsButton">✖️ Close Settings</button>
             </div>
 
             <div
@@ -494,6 +777,30 @@
 
             <div id="deathScreen" class="death-screen">
                 <h2>YOU DIED</h2>
+                <div style="margin: 20px 0; color: #ffffff">
+                    <div style="font-size: 24px; margin: 10px 0">
+                        Final Score:
+                        <span id="finalScore" style="color: #3498db">0</span>
+                    </div>
+                    <div style="font-size: 20px; margin: 10px 0">
+                        High Score:
+                        <span id="deathHighScore" style="color: #f39c12"
+                            >0</span
+                        >
+                    </div>
+                    <div
+                        id="newHighScoreMessage"
+                        style="
+                            font-size: 18px;
+                            color: #2ecc71;
+                            margin: 10px 0;
+                            display: none;
+                            animation: pulse 1s infinite;
+                        "
+                    >
+                        🎉 NEW HIGH SCORE! 🎉
+                    </div>
+                </div>
                 <button id="deathRestartButton" class="restart-button">
                     RESTART
                 </button>
@@ -524,6 +831,132 @@
                         controlsToggle.style.borderColor = "#2980b9";
                     }
                 });
+
+                // Settings functionality
+                const settingsButton =
+                    document.getElementById("settingsButton");
+                const pauseSettingsButton = document.getElementById(
+                    "pauseSettingsButton",
+                );
+                const settingsMenu = document.getElementById("settingsMenu");
+                const closeSettingsButton = document.getElementById(
+                    "closeSettingsButton",
+                );
+                const bloodToggle = document.getElementById("bloodToggle");
+                const bloodCountSlider =
+                    document.getElementById("bloodCountSlider");
+                const bloodCountValue =
+                    document.getElementById("bloodCountValue");
+                const screenShakeToggle =
+                    document.getElementById("screenShakeToggle");
+                const overlay = document.getElementById("overlay");
+
+                // Show settings from main menu
+                if (settingsButton) {
+                    settingsButton.addEventListener("click", function () {
+                        document.getElementById("startMenu").style.display =
+                            "none";
+                        settingsMenu.style.display = "block";
+                        overlay.style.display = "block";
+                    });
+                }
+
+                // Show settings from pause menu
+                if (pauseSettingsButton) {
+                    pauseSettingsButton.addEventListener("click", function () {
+                        document.getElementById("pauseMenu").style.display =
+                            "none";
+                        settingsMenu.style.display = "block";
+                        overlay.style.display = "block";
+                    });
+                }
+
+                // Close settings
+                if (closeSettingsButton) {
+                    closeSettingsButton.addEventListener("click", function () {
+                        settingsMenu.style.display = "none";
+                        overlay.style.display = "none";
+                        // Return to appropriate menu based on game state
+                        if (window.gameStarted && window.isPaused) {
+                            document.getElementById("pauseMenu").style.display =
+                                "block";
+                        } else {
+                            document.getElementById("startMenu").style.display =
+                                "block";
+                        }
+                    });
+                }
+
+                // Accordion functionality - only one category open at a time
+                const categoryHeaders =
+                    document.querySelectorAll(".category-header");
+                categoryHeaders.forEach((header) => {
+                    header.addEventListener("click", function () {
+                        const category = this.dataset.category;
+                        const content = document.getElementById(
+                            category + "-content",
+                        );
+                        const icon = this.querySelector(".collapse-icon");
+
+                        // Check if this category is currently collapsed
+                        const isCollapsed =
+                            content.classList.contains("collapsed");
+
+                        if (isCollapsed) {
+                            // Close all other categories first
+                            categoryHeaders.forEach((otherHeader) => {
+                                const otherCategory =
+                                    otherHeader.dataset.category;
+                                const otherContent = document.getElementById(
+                                    otherCategory + "-content",
+                                );
+                                const otherIcon =
+                                    otherHeader.querySelector(".collapse-icon");
+
+                                otherContent.classList.add("collapsed");
+                                otherHeader.classList.add("collapsed");
+                                otherIcon.textContent = "▶";
+                            });
+
+                            // Then expand this category
+                            content.classList.remove("collapsed");
+                            this.classList.remove("collapsed");
+                            icon.textContent = "▼";
+                        } else {
+                            // Collapse this category
+                            content.classList.add("collapsed");
+                            this.classList.add("collapsed");
+                            icon.textContent = "▶";
+                        }
+                    });
+                });
+
+                // Blood count slider update
+                if (bloodCountSlider && bloodCountValue) {
+                    bloodCountSlider.addEventListener("input", function () {
+                        bloodCountValue.textContent = this.value;
+                        window.bloodParticleCount = parseInt(this.value);
+                    });
+                }
+
+                // Blood toggle
+                if (bloodToggle) {
+                    bloodToggle.addEventListener("change", function () {
+                        window.bloodEffectsEnabled = this.checked;
+                    });
+                }
+
+                // Screen shake toggle
+                if (screenShakeToggle) {
+                    screenShakeToggle.addEventListener("change", function () {
+                        window.screenShakeEnabled = this.checked;
+                    });
+                }
+
+                // Initialize settings
+                window.bloodEffectsEnabled = true;
+                window.bloodParticleCount = 30;
+                window.screenShakeEnabled = true;
             });
 
             // Add CSS for shop animation

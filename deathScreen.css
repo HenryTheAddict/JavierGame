@@ -28,27 +28,42 @@
     border: none;
     padding: 15px 30px;
     margin: 20px 0;
-    border-radius: 5px;
+    border-radius: 25px;
     cursor: pointer;
     font-size: 20px;
     font-weight: bold;
     transition: all 0.3s;
+    box-shadow: 0 4px 8px rgba(255, 0, 0, 0.3);
 }
 
 .restart-button:hover {
     background-color: #cc0000;
     transform: scale(1.1);
-    box-shadow: 0 0 15px #ff0000;
+    box-shadow:
+        0 0 15px #ff0000,
+        0 6px 12px rgba(255, 0, 0, 0.4);
 }
 
 @keyframes pulse {
-    0% { box-shadow: 0 0 20px #ff0000; }
-    50% { box-shadow: 0 0 30px #ff0000; }
-    100% { box-shadow: 0 0 20px #ff0000; }
+    0% {
+        box-shadow: 0 0 20px #ff0000;
+    }
+    50% {
+        box-shadow: 0 0 30px #ff0000;
+    }
+    100% {
+        box-shadow: 0 0 20px #ff0000;
+    }
 }
 
 @keyframes flicker {
-    0% { opacity: 1; }
-    50% { opacity: 0.8; }
-    100% { opacity: 1; }
+    0% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.8;
+    }
+    100% {
+        opacity: 1;
+    }
 }

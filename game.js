@@ -14,11 +14,13 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   const scoreElement = document.getElementById("score");
+  const highScoreElement = document.getElementById("highScore");
   const coinsElement = document.getElementById("coins");
   const startRoundButton = document.getElementById("startRoundButton");
 
   // Game state
   let score = 0;
+  let highScore = 0;
   let coins = 0;
   let isPaused = false;
   let isShopOpen = false;
@@ -92,7 +94,7 @@ document.addEventListener("DOMContentLoaded", function () {
     {
       name: "basic",
       color: "#e74c3c",
-      health: 40,
+      health: 20,
       speed: 1,
       jumpForce: 8,
       size: { width: 40, height: 50 },
@@ -109,17 +111,17 @@ document.addEventListener("DOMContentLoaded", function () {
     },
     {
       name: "tank",
-      color: "#59b66f",
-      health: 80,
-      speed: 0.4,
+      color: "#9b59b6",
+      health: 40,
+      speed: 0.8,
       jumpForce: 6,
       size: { width: 50, height: 60 },
       points: 25,
     },
     {
       name: "jumper",
-      color: "#c92ecc",
-      health: 10,
+      color: "#2ecc71",
+      health: 18,
       speed: 1.2,
       jumpForce: 15,
       size: { width: 38, height: 48 },
@@ -128,7 +130,7 @@ document.addEventListener("DOMContentLoaded", function () {
     {
       name: "mini",
       color: "#1abc9c",
-      health: 2,
+      health: 12,
       speed: 3,
       jumpForce: 10,
       size: { width: 25, height: 35 },
@@ -152,7 +154,7 @@ document.addEventListener("DOMContentLoaded", function () {
   const screenShake = {
     x: 0,
     y: 0,
-    intensity: 1,
+    intensity: 0,
     duration: 0,
   };
 
@@ -219,7 +221,7 @@ document.addEventListener("DOMContentLoaded", function () {
         button.innerHTML = "❌ Not enough coins!";
 
         // Shake animation
-        button.style.animation = "shake 0.7s ease-in-out";
+        button.style.animation = "shake 0.5s ease-in-out";
 
         setTimeout(() => {
           button.style.transform = "scale(1)";
@@ -269,7 +271,7 @@ document.addEventListener("DOMContentLoaded", function () {
       player.isPunching = true;
       setTimeout(() => {
         player.isPunching = false;
-      }, 125); // Reduced from 300ms to 150ms for faster attacking
+      }, 150); // Reduced from 300ms to 150ms for faster attacking
 
       // Check for enemy hits
       checkPunchHits();
@@ -604,7 +606,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   function createDeathAnimation(x, y) {
     const particles = [];
-    const particleCount = 60; // Doubled particle count
+    const particleCount = 30; // Doubled particle count
 
     // Blood color variations
     const bloodColors = ["#e74c3c", "#c0392b", "#a93226", "#922b21", "#7b241c"];
@@ -1491,7 +1493,7 @@ document.addEventListener("DOMContentLoaded", function () {
       ctx.fillStyle = "#fff";
       ctx.font = "10px Arial";
       ctx.textAlign = "center";
-      ctx.fillText("⚡Charged⚡", player.x + player.width / 2, meterY - 3);
+      ctx.fillText("⚡READY⚡", player.x + player.width / 2, meterY - 3);
     }
 
     ctx.restore();
@@ -1739,7 +1741,7 @@ document.addEventListener("DOMContentLoaded", function () {
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.fillText(
-        "☠",
+        "RIP",
         grave.x + grave.width / 2,
         grave.y + grave.yOffset + 15,
       );
@@ -1767,6 +1769,9 @@ document.addEventListener("DOMContentLoaded", function () {
     player.isDead = true;
     player.deathAnimation.active = true;
     player.deathAnimation.timer = 0;
+
+    // Check for high score when player dies
+    checkHighScore();
 
     // Create death particles - increased quantity and variety
     for (let i = 0; i < 40; i++) {
@@ -1800,6 +1805,29 @@ document.addEventListener("DOMContentLoaded", function () {
     // Show death screen after a delay
     setTimeout(() => {
       isPaused = true;
+      window.isPaused = isPaused;
+
+      // Update death screen with score information
+      const finalScoreElement = document.getElementById("finalScore");
+      const deathHighScoreElement = document.getElementById("deathHighScore");
+      const newHighScoreMessage = document.getElementById(
+        "newHighScoreMessage",
+      );
+
+      if (finalScoreElement) {
+        finalScoreElement.textContent = score;
+      }
+      if (deathHighScoreElement) {
+        deathHighScoreElement.textContent = highScore;
+      }
+
+      // Show "NEW HIGH SCORE!" message if this was a new high score
+      if (newHighScoreMessage && score === highScore && score > 0) {
+        newHighScoreMessage.style.display = "block";
+      } else if (newHighScoreMessage) {
+        newHighScoreMessage.style.display = "none";
+      }
+
       deathScreen.style.display = "block";
       overlay.style.display = "block";
     }, 2000);
@@ -1976,6 +2004,11 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // Screen shake functions
   function createScreenShake(intensity, duration) {
+    // Check if screen shake is enabled
+    if (!window.screenShakeEnabled) {
+      return; // Skip screen shake if disabled
+    }
+
     if (screenShake.intensity < intensity) {
       screenShake.intensity = intensity;
       screenShake.duration = duration;
@@ -2195,9 +2228,50 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 
+  // High score management
+  function loadHighScore() {
+    const saved = localStorage.getItem("javierHighScore");
+    highScore = saved ? parseInt(saved) : 0;
+    if (highScoreElement) {
+      highScoreElement.textContent = highScore;
+    }
+    // Also update menu high score display
+    const menuHighScoreElement = document.getElementById("menuHighScore");
+    if (menuHighScoreElement) {
+      menuHighScoreElement.textContent = highScore;
+    }
+  }
+
+  function saveHighScore() {
+    localStorage.setItem("javierHighScore", highScore.toString());
+  }
+
+  function checkHighScore() {
+    if (score > highScore) {
+      highScore = score;
+      if (highScoreElement) {
+        highScoreElement.textContent = highScore;
+        // Add a subtle animation to highlight new high score
+        highScoreElement.style.color = "#f39c12";
+        highScoreElement.style.textShadow = "0 0 10px #f39c12";
+        setTimeout(() => {
+          highScoreElement.style.color = "";
+          highScoreElement.style.textShadow = "";
+        }, 2000);
+      }
+      // Also update menu high score display
+      const menuHighScoreElement = document.getElementById("menuHighScore");
+      if (menuHighScoreElement) {
+        menuHighScoreElement.textContent = highScore;
+      }
+      saveHighScore();
+    }
+  }
+
   // Function to start the game
   function startGame() {
     gameStarted = true;
+    window.gameStarted = gameStarted;
     currentRound = 1;
     enemiesRemaining = 8;
 
@@ -2206,6 +2280,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Reset progress bar
     document.getElementById("roundProgressBar").style.width = "0%";
+
+    // Load high score at game start
+    loadHighScore();
   }
 
   // Initialize game
@@ -2284,6 +2361,9 @@ document.addEventListener("DOMContentLoaded", function () {
   clearAllUIStates();
   startMenu.style.display = "block";
   overlay.style.display = "block";
+
+  // Load high score from localStorage
+  loadHighScore();
 
   // Start the game loop (will only render active elements when gameStarted is true)
   gameLoop();
