@@ -13,10 +13,56 @@ document.addEventListener("DOMContentLoaded", function () {
     return;
   }
 
+  // Make canvas responsive
+  function resizeCanvas() {
+    const container = document.getElementById("gameContainer");
+    if (!container) return;
+    
+    const maxWidth = Math.min(800, window.innerWidth - 20);
+    const maxHeight = Math.min(400, window.innerHeight - 200);
+    
+    const scale = Math.min(maxWidth / 800, maxHeight / 400);
+    canvas.style.width = (800 * scale) + "px";
+    canvas.style.height = (400 * scale) + "px";
+    
+    // Maintain aspect ratio
+    canvas.width = 800;
+    canvas.height = 400;
+  }
+  
+  // Initialize canvas size
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', resizeCanvas);
+  } else {
+    resizeCanvas();
+  }
+  
+  window.addEventListener("resize", resizeCanvas);
+  window.addEventListener("orientationchange", () => {
+    setTimeout(resizeCanvas, 100);
+  });
+
   const scoreElement = document.getElementById("score");
   const highScoreElement = document.getElementById("highScore");
   const coinsElement = document.getElementById("coins");
   const startRoundButton = document.getElementById("startRoundButton");
+  const pauseButton = document.getElementById("pauseButton");
+  const comboDisplay = document.getElementById("comboDisplay");
+  const powerUpDisplay = document.getElementById("powerUpDisplay");
+  const roundDisplay = document.getElementById("roundDisplay");
+  const killsDisplay = document.getElementById("killsDisplay");
+  const achievementNotification = document.getElementById("achievementNotification");
+  const achievementText = document.getElementById("achievementText");
+
+  // Mobile controls
+  const joystick = document.getElementById("joystick");
+  const joystickHandle = document.getElementById("joystickHandle");
+  const mobileJump = document.getElementById("mobileJump");
+  const mobilePunch = document.getElementById("mobilePunch");
+  const mobileLightning = document.getElementById("mobileLightning");
+  let joystickActive = false;
+  let joystickX = 0;
+  let joystickY = 0;
 
   // Game state
   let score = 0;
@@ -26,6 +72,13 @@ document.addEventListener("DOMContentLoaded", function () {
   let isShopOpen = false;
   let gameStarted = false; // Track if game has started
   let lastDirection = 1; // 1 for right, -1 for left
+  let kills = 0; // Track total kills
+  let currentCombo = 0; // Combo counter
+  let comboTimer = 0; // Combo timer
+  const comboTimeout = 180; // 3 seconds at 60fps
+  let lastKillTime = 0; // Time since last kill
+  const powerUps = []; // Active power-ups
+  const achievements = new Set(); // Unlocked achievements
 
   // Health regeneration system
   let lastDamageTime = 0;
@@ -182,6 +235,97 @@ document.addEventListener("DOMContentLoaded", function () {
   closeShopButton.addEventListener("click", toggleShop);
   startButton.addEventListener("click", startGame);
   shopButton.addEventListener("click", toggleShop);
+  if (pauseButton) {
+    pauseButton.addEventListener("click", togglePause);
+  }
+
+  // Mobile controls setup
+  function setupMobileControls() {
+    if (!joystick || !joystickHandle) return;
+
+    let joystickCenterX = 0;
+    let joystickCenterY = 0;
+    const joystickRadius = 35;
+
+    function getJoystickPosition(e) {
+      const rect = joystick.getBoundingClientRect();
+      return {
+        x: (e.touches ? e.touches[0].clientX : e.clientX) - rect.left - rect.width / 2,
+        y: (e.touches ? e.touches[0].clientY : e.clientY) - rect.top - rect.height / 2
+      };
+    }
+
+    function updateJoystick(x, y) {
+      const distance = Math.sqrt(x * x + y * y);
+      if (distance > joystickRadius) {
+        x = (x / distance) * joystickRadius;
+        y = (y / distance) * joystickRadius;
+      }
+      joystickHandle.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`;
+      joystickX = x / joystickRadius;
+      joystickY = y / joystickRadius;
+    }
+
+    joystick.addEventListener("touchstart", (e) => {
+      e.preventDefault();
+      joystickActive = true;
+      const pos = getJoystickPosition(e);
+      updateJoystick(pos.x, pos.y);
+    });
+
+    joystick.addEventListener("touchmove", (e) => {
+      if (!joystickActive) return;
+      e.preventDefault();
+      const pos = getJoystickPosition(e);
+      updateJoystick(pos.x, pos.y);
+    });
+
+    joystick.addEventListener("touchend", (e) => {
+      e.preventDefault();
+      joystickActive = false;
+      joystickX = 0;
+      joystickY = 0;
+      joystickHandle.style.transform = "translate(-50%, -50%)";
+    });
+
+    // Mobile button handlers
+    if (mobileJump) {
+      mobileJump.addEventListener("touchstart", (e) => {
+        e.preventDefault();
+        keys[" "] = true;
+        keys["arrowup"] = true;
+      });
+      mobileJump.addEventListener("touchend", (e) => {
+        e.preventDefault();
+        keys[" "] = false;
+        keys["arrowup"] = false;
+      });
+    }
+
+    if (mobilePunch) {
+      mobilePunch.addEventListener("touchstart", (e) => {
+        e.preventDefault();
+        if (!player.isPunching && !isPaused && !isShopOpen) {
+          player.isPunching = true;
+          setTimeout(() => {
+            player.isPunching = false;
+          }, 150);
+          checkPunchHits();
+        }
+      });
+    }
+
+    if (mobileLightning) {
+      mobileLightning.addEventListener("touchstart", (e) => {
+        e.preventDefault();
+        if (!isPaused && !isShopOpen && !player.isDead) {
+          performElectrocutionAttack();
+        }
+      });
+    }
+  }
+
+  setupMobileControls();
 
   // Remove the start round button functionality as we're auto-starting rounds
   startRoundButton.style.display = "none";
@@ -317,17 +461,206 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 
+  // Combo display function
+  function showCombo(combo) {
+    if (!comboDisplay) return;
+    comboDisplay.textContent = `${combo}x COMBO!`;
+    comboDisplay.classList.add("active");
+    setTimeout(() => {
+      comboDisplay.classList.remove("active");
+    }, 1000);
+  }
+
+  // Update combo timer
+  function updateCombo() {
+    if (comboTimer > 0) {
+      comboTimer--;
+      if (comboTimer === 0 && currentCombo > 1) {
+        currentCombo = 0;
+        if (comboDisplay) comboDisplay.classList.remove("active");
+      }
+    }
+  }
+
+  // Power-up system
+  function spawnPowerUp(x, y) {
+    const powerUpTypes = [
+      { type: "speed", icon: "⚡", color: "#f39c12", duration: 600 },
+      { type: "damage", icon: "💪", color: "#e74c3c", duration: 600 },
+      { type: "health", icon: "❤️", color: "#2ecc71", duration: 0 }
+    ];
+    
+    const powerUp = powerUpTypes[Math.floor(Math.random() * powerUpTypes.length)];
+    powerUps.push({
+      x: x,
+      y: y,
+      width: 30,
+      height: 30,
+      type: powerUp.type,
+      icon: powerUp.icon,
+      color: powerUp.color,
+      rotation: 0,
+      collected: false
+    });
+  }
+
+  function collectPowerUp(powerUp) {
+    if (powerUp.collected) return;
+    powerUp.collected = true;
+    
+    const activePowerUp = {
+      type: powerUp.type,
+      timer: powerUp.type === "health" ? 0 : 600,
+      maxTime: 600
+    };
+    
+    switch (powerUp.type) {
+      case "speed":
+        player.speed *= 1.5;
+        break;
+      case "damage":
+        player.punchDamage *= 1.5;
+        break;
+      case "health":
+        player.health = Math.min(player.health + 30, player.maxHealth);
+        break;
+    }
+    
+    // Add to active power-ups list (check if already exists)
+    player.activePowerUps = player.activePowerUps || [];
+    const existingIndex = player.activePowerUps.findIndex(p => p.type === powerUp.type);
+    if (existingIndex > -1) {
+      // Reset timer if already exists
+      player.activePowerUps[existingIndex].timer = activePowerUp.timer;
+    } else {
+      player.activePowerUps.push(activePowerUp);
+    }
+    
+    // Remove power-up from world
+    const index = powerUps.indexOf(powerUp);
+    if (index > -1) powerUps.splice(index, 1);
+  }
+
+  function updatePowerUps() {
+    // Update active power-ups
+    if (player.activePowerUps) {
+      for (let i = player.activePowerUps.length - 1; i >= 0; i--) {
+        const powerUp = player.activePowerUps[i];
+        if (powerUp.timer > 0) {
+          powerUp.timer--;
+          if (powerUp.timer === 0) {
+            // Remove power-up effect
+            switch (powerUp.type) {
+              case "speed":
+                player.speed /= 1.5;
+                break;
+              case "damage":
+                player.punchDamage /= 1.5;
+                break;
+            }
+            player.activePowerUps.splice(i, 1);
+          }
+        }
+      }
+    }
+    
+    // Update power-up display
+    if (powerUpDisplay) {
+      powerUpDisplay.innerHTML = "";
+      if (player.activePowerUps && player.activePowerUps.length > 0) {
+        player.activePowerUps.forEach(powerUp => {
+          const item = document.createElement("div");
+          item.className = "power-up-item";
+          const progress = powerUp.timer > 0 ? (powerUp.timer / powerUp.maxTime) * 100 : 100;
+          item.innerHTML = `
+            <span class="power-up-icon">${powerUp.type === "speed" ? "⚡" : powerUp.type === "damage" ? "💪" : "❤️"}</span>
+            <div style="flex: 1;">
+              <div style="background: rgba(255,255,255,0.2); height: 4px; border-radius: 2px; overflow: hidden;">
+                <div style="background: ${powerUp.type === "speed" ? "#f39c12" : powerUp.type === "damage" ? "#e74c3c" : "#2ecc71"}; height: 100%; width: ${progress}%; transition: width 0.1s;"></div>
+              </div>
+            </div>
+          `;
+          powerUpDisplay.appendChild(item);
+        });
+      }
+    }
+  }
+
+  // Achievement system
+  function checkAchievements() {
+    const newAchievements = [];
+    
+    if (kills >= 10 && !achievements.has("first_blood")) {
+      achievements.add("first_blood");
+      newAchievements.push({ id: "first_blood", name: "First Blood", desc: "Kill 10 enemies" });
+    }
+    if (kills >= 50 && !achievements.has("slayer")) {
+      achievements.add("slayer");
+      newAchievements.push({ id: "slayer", name: "Slayer", desc: "Kill 50 enemies" });
+    }
+    if (kills >= 100 && !achievements.has("massacre")) {
+      achievements.add("massacre");
+      newAchievements.push({ id: "massacre", name: "Massacre", desc: "Kill 100 enemies" });
+    }
+    if (currentCombo >= 10 && !achievements.has("combo_master")) {
+      achievements.add("combo_master");
+      newAchievements.push({ id: "combo_master", name: "Combo Master", desc: "Achieve a 10x combo" });
+    }
+    if (score >= 1000 && !achievements.has("high_roller")) {
+      achievements.add("high_roller");
+      newAchievements.push({ id: "high_roller", name: "High Roller", desc: "Score 1000 points" });
+    }
+    if (currentRound >= 5 && !achievements.has("survivor")) {
+      achievements.add("survivor");
+      newAchievements.push({ id: "survivor", name: "Survivor", desc: "Reach round 5" });
+    }
+    
+    newAchievements.forEach(achievement => {
+      showAchievement(achievement);
+    });
+  }
+
+  function showAchievement(achievement) {
+    if (!achievementNotification || !achievementText) return;
+    achievementText.textContent = `${achievement.name}: ${achievement.desc}`;
+    achievementNotification.classList.add("show");
+    setTimeout(() => {
+      achievementNotification.classList.remove("show");
+    }, 3000);
+  }
+
   function restartGame() {
     score = 0;
     scoreElement.textContent = score;
     coins = 0;
     coinsElement.textContent = coins;
+    kills = 0;
+    currentCombo = 0;
+    comboTimer = 0;
+    if (killsDisplay) killsDisplay.textContent = kills;
 
     // Reset round system
     currentRound = 1;
     enemiesRemaining = 8;
     isRoundTransition = false;
     roundTransitionTimer = 0;
+    if (roundDisplay) roundDisplay.textContent = currentRound;
+    
+    // Clear power-ups
+    powerUps.length = 0;
+    if (player.activePowerUps) {
+      player.activePowerUps.forEach(powerUp => {
+        switch (powerUp.type) {
+          case "speed":
+            player.speed /= 1.5;
+            break;
+          case "damage":
+            player.punchDamage /= 1.5;
+            break;
+        }
+      });
+      player.activePowerUps = [];
+    }
 
     // Reset player
     player.x = 100;
@@ -710,8 +1043,30 @@ document.addEventListener("DOMContentLoaded", function () {
           );
 
           if (enemy.health <= 0) {
-            score += enemy.points || 10;
+            // Combo system
+            const timeSinceLastKill = Date.now() - lastKillTime;
+            if (timeSinceLastKill < 3000) { // 3 seconds
+              currentCombo++;
+              comboTimer = comboTimeout;
+            } else {
+              currentCombo = 1;
+              comboTimer = comboTimeout;
+            }
+            lastKillTime = Date.now();
+            kills++;
+            if (killsDisplay) killsDisplay.textContent = kills;
+
+            // Combo multiplier
+            const comboMultiplier = 1 + (currentCombo - 1) * 0.1;
+            const basePoints = enemy.points || 10;
+            const comboBonus = Math.floor(basePoints * (comboMultiplier - 1));
+            score += basePoints + comboBonus;
             scoreElement.textContent = score;
+
+            // Show combo display
+            if (currentCombo > 1) {
+              showCombo(currentCombo);
+            }
 
             // Create death animation at enemy position
             createDeathAnimation(enemy.x, enemy.y);
@@ -778,8 +1133,30 @@ document.addEventListener("DOMContentLoaded", function () {
           );
 
           if (enemy.health <= 0) {
-            score += enemy.points || 10;
+            // Combo system
+            const timeSinceLastKill = Date.now() - lastKillTime;
+            if (timeSinceLastKill < 3000) { // 3 seconds
+              currentCombo++;
+              comboTimer = comboTimeout;
+            } else {
+              currentCombo = 1;
+              comboTimer = comboTimeout;
+            }
+            lastKillTime = Date.now();
+            kills++;
+            if (killsDisplay) killsDisplay.textContent = kills;
+
+            // Combo multiplier
+            const comboMultiplier = 1 + (currentCombo - 1) * 0.1;
+            const basePoints = enemy.points || 10;
+            const comboBonus = Math.floor(basePoints * (comboMultiplier - 1));
+            score += basePoints + comboBonus;
             scoreElement.textContent = score;
+
+            // Show combo display
+            if (currentCombo > 1) {
+              showCombo(currentCombo);
+            }
 
             // Create death animation at enemy position
             createDeathAnimation(enemy.x, enemy.y);
@@ -865,18 +1242,23 @@ document.addEventListener("DOMContentLoaded", function () {
     // Horizontal movement
     player.velocity.x = 0;
 
-    if (keys["a"] || keys["arrowleft"]) {
+    // Check mobile joystick or keyboard
+    const leftPressed = keys["a"] || keys["arrowleft"] || (joystickActive && joystickX < -0.3);
+    const rightPressed = keys["d"] || keys["arrowright"] || (joystickActive && joystickX > 0.3);
+
+    if (leftPressed) {
       player.velocity.x = -player.speed;
       lastDirection = -1;
     }
 
-    if (keys["d"] || keys["arrowright"]) {
+    if (rightPressed) {
       player.velocity.x = player.speed;
       lastDirection = 1;
     }
 
-    // Jumping
-    if ((keys[" "] || keys["arrowup"]) && !player.isJumping) {
+    // Jumping - check mobile joystick up or keyboard
+    const jumpPressed = keys[" "] || keys["arrowup"] || (joystickActive && joystickY < -0.5);
+    if (jumpPressed && !player.isJumping) {
       player.velocity.y = -player.jumpForce;
       player.isJumping = true;
 
@@ -931,6 +1313,9 @@ document.addEventListener("DOMContentLoaded", function () {
         // Automatically start the next round instead of showing the button
         startRoundTransition();
       }
+      
+      // Update round display
+      if (roundDisplay) roundDisplay.textContent = currentRound;
     }
 
     // Update existing enemies
@@ -1666,6 +2051,45 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
+  function drawPowerUps() {
+    powerUps.forEach((powerUp) => {
+      if (powerUp.collected) return;
+      
+      ctx.save();
+      ctx.translate(powerUp.x + powerUp.width / 2, powerUp.y + powerUp.height / 2);
+      powerUp.rotation += 0.05;
+      ctx.rotate(powerUp.rotation);
+      
+      // Draw power-up with glow effect
+      ctx.shadowColor = powerUp.color;
+      ctx.shadowBlur = 15;
+      
+      // Background circle
+      ctx.fillStyle = powerUp.color;
+      ctx.beginPath();
+      ctx.arc(0, 0, powerUp.width / 2, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Icon
+      ctx.fillStyle = "#fff";
+      ctx.font = "20px Arial";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(powerUp.icon, 0, 0);
+      
+      ctx.restore();
+      
+      // Check collection
+      const dx = player.x + player.width / 2 - (powerUp.x + powerUp.width / 2);
+      const dy = player.y + player.height / 2 - (powerUp.y + powerUp.height / 2);
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      
+      if (distance < player.width / 2 + powerUp.width / 2) {
+        collectPowerUp(powerUp);
+      }
+    });
+  }
+
   function drawDeathAnimations() {
     deathAnimations.forEach((anim) => {
       anim.particles.forEach((particle) => {
@@ -1947,6 +2371,14 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Reset progress bar during round transition
     document.getElementById("roundProgressBar").style.width = "0%";
+    
+    // Check achievements
+    checkAchievements();
+    
+    // Spawn power-up every 3 rounds
+    if (currentRound % 3 === 0 && currentRound > 1) {
+      spawnPowerUp(canvas.width / 2, ground - 100);
+    }
   }
 
   // Create blood splatter effect
@@ -2093,6 +2525,7 @@ document.addEventListener("DOMContentLoaded", function () {
       drawJumpParticles(); // Draw jump particles
       drawBloodParticles(); // Draw blood particles
       drawCoins();
+      drawPowerUps(); // Draw power-ups
       drawDeathAnimations();
       drawPlayer();
       drawPlayerDeathAnimation();
@@ -2105,6 +2538,7 @@ document.addEventListener("DOMContentLoaded", function () {
       updatePlayerDeathAnimation();
       updateEnemies();
       updateCoins();
+      updatePowerUps(); // Update power-ups
       updateDeathAnimations();
       updateGraveAnimations(); // Update grave animations
       updateDamageIndicators(); // Update damage indicators
@@ -2114,6 +2548,7 @@ document.addEventListener("DOMContentLoaded", function () {
       updateBlinkAnimation(); // Update blink animation
       updateLightningEffects(); // Update lightning effects
       updateScreenShake(); // Update screen shake
+      updateCombo(); // Update combo system
 
       // Draw round transition overlay (if active)
       drawRoundTransition();
@@ -2246,6 +2681,44 @@ document.addEventListener("DOMContentLoaded", function () {
     localStorage.setItem("javierHighScore", highScore.toString());
   }
 
+  // Auto-save game state
+  function autoSave() {
+    const gameState = {
+      score: score,
+      coins: coins,
+      kills: kills,
+      currentRound: currentRound,
+      playerStats: {
+        speed: player.speed,
+        punchDamage: player.punchDamage,
+        maxHealth: player.maxHealth,
+        health: player.health
+      },
+      achievements: Array.from(achievements)
+    };
+    localStorage.setItem("javierGameState", JSON.stringify(gameState));
+  }
+
+  function loadGameState() {
+    const saved = localStorage.getItem("javierGameState");
+    if (saved) {
+      try {
+        const gameState = JSON.parse(saved);
+        // Optionally restore game state on restart
+        // This can be used for a "continue" feature
+      } catch (e) {
+        console.error("Failed to load game state:", e);
+      }
+    }
+  }
+
+  // Auto-save every 10 seconds
+  setInterval(() => {
+    if (gameStarted && !isPaused) {
+      autoSave();
+    }
+  }, 10000);
+
   function checkHighScore() {
     if (score > highScore) {
       highScore = score;
@@ -2274,6 +2747,10 @@ document.addEventListener("DOMContentLoaded", function () {
     window.gameStarted = gameStarted;
     currentRound = 1;
     enemiesRemaining = 8;
+    kills = 0;
+    currentCombo = 0;
+    if (roundDisplay) roundDisplay.textContent = currentRound;
+    if (killsDisplay) killsDisplay.textContent = kills;
 
     // Clear all UI states and start fresh
     clearAllUIStates();
@@ -2283,6 +2760,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Load high score at game start
     loadHighScore();
+    
+    // Check achievements periodically
+    setInterval(checkAchievements, 5000);
   }
 
   // Initialize game
