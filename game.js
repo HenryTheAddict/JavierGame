@@ -48,6 +48,54 @@ document.addEventListener("DOMContentLoaded", function () {
   let roundTransitionTimer = 0;
   const roundTransitionDuration = 120; // 2 seconds at 60fps
 
+  // Game mode (main game vs minigames)
+  let gameMode = "main"; // "main" | "mustardApocalypse"
+
+  // Mustard Apocalypse minigame (simple 3D-ish first-person canvas mode)
+  const mustardApocalypse = {
+    active: false,
+    roundNumber: 0,
+    startedAtMs: 0,
+    timeLimitMs: 35_000,
+    horizonY: Math.floor(canvas.height * 0.45),
+    camHeight: 1.6,
+    fovRad: Math.PI / 3,
+    player: {
+      x: 0,
+      z: 0,
+      angle: 0,
+      speed: 0.18,
+      turnSpeed: 0.045,
+      health: 100,
+      maxHealth: 100,
+    },
+    world: {
+      minX: -20,
+      maxX: 20,
+      minZ: -6,
+      maxZ: 46,
+    },
+    spray: {
+      cooldownMs: 70,
+      lastAtMs: 0,
+      splatRadius: 1.25,
+      goalSplats: 45,
+    },
+    shoot: {
+      cooldownMs: 220,
+      lastAtMs: 0,
+    },
+    splats: [], // {x,z,r,seed}
+    enemies: [], // {x,z,health,maxHealth,phase,moveSpeed}
+    projectiles: [], // {x,z,vx,vz,lifeMs,spawnedAtMs}
+    message: {
+      text: "",
+      untilMs: 0,
+    },
+    scoreReward: 0,
+    coinReward: 0,
+  };
+
   // Damage indicators
   const damageIndicators = [];
 
