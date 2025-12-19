@@ -47,6 +47,7 @@ document.addEventListener("DOMContentLoaded", function () {
   let isRoundTransition = false;
   let roundTransitionTimer = 0;
   const roundTransitionDuration = 120; // 2 seconds at 60fps
+  let pendingMustardApocalypse = false;
 
   // Game mode (main game vs minigames)
   let gameMode = "main"; // "main" | "mustardApocalypse"
@@ -299,6 +300,25 @@ document.addEventListener("DOMContentLoaded", function () {
   document.addEventListener("keydown", (e) => {
     keys[e.key.toLowerCase()] = true;
 
+    // Minigame input handling (block normal game actions)
+    if (gameMode === "mustardApocalypse") {
+      if (e.key === "Escape" && !isShopOpen) {
+        togglePause();
+      }
+
+      // Spray mustard
+      if ((e.key === " " || e.key.toLowerCase() === "k") && !isPaused) {
+        mustardApocalypseSpray();
+      }
+
+      // Shoot mustard blobs at ketchup enemies
+      if (e.key.toLowerCase() === "j" && !isPaused) {
+        mustardApocalypseShoot();
+      }
+
+      return;
+    }
+
     // Pause game with Escape key
     if (e.key === "Escape" && !isShopOpen) {
       togglePause();
@@ -338,6 +358,17 @@ document.addEventListener("DOMContentLoaded", function () {
 
   document.addEventListener("keyup", (e) => {
     keys[e.key.toLowerCase()] = false;
+  });
+
+  // Mouse controls for Mustard Apocalypse
+  canvas.addEventListener("contextmenu", (e) => e.preventDefault());
+  canvas.addEventListener("mousedown", (e) => {
+    if (gameMode !== "mustardApocalypse" || isPaused || isShopOpen) return;
+    if (e.button === 2) {
+      mustardApocalypseShoot();
+    } else {
+      mustardApocalypseSpray();
+    }
   });
 
   // Game functions
@@ -398,6 +429,11 @@ document.addEventListener("DOMContentLoaded", function () {
     isShopOpen = false;
     shopMenu.style.display = "none";
     document.body.classList.remove("shop-open");
+
+    // Reset minigame state
+    pendingMustardApocalypse = false;
+    mustardApocalypse.active = false;
+    gameMode = "main";
 
     // Show start menu again
     gameStarted = false;
@@ -1993,6 +2029,9 @@ document.addEventListener("DOMContentLoaded", function () {
     currentRound++;
     enemiesRemaining = 8 + (currentRound - 1) * 3; // More enemies each round, ramped up
 
+    // Every 5 rounds, queue the Mustard Apocalypse minigame before the round begins
+    pendingMustardApocalypse = currentRound % 5 === 0;
+
     // Reset progress bar during round transition
     document.getElementById("roundProgressBar").style.width = "0%";
   }
@@ -2092,6 +2131,11 @@ document.addEventListener("DOMContentLoaded", function () {
 
     if (roundTransitionTimer >= roundTransitionDuration) {
       isRoundTransition = false;
+
+      if (pendingMustardApocalypse && gameMode === "main") {
+        pendingMustardApocalypse = false;
+        enterMustardApocalypse(currentRound);
+      }
     }
   }
 
@@ -2125,7 +2169,11 @@ document.addEventListener("DOMContentLoaded", function () {
     ctx.restore();
   }
 
-  function gameLoop() {
+  let lastFrameTimeMs = 0;
+  function gameLoop(nowMs = 0) {
+    const dtSec =
+      lastFrameTimeMs === 0 ? 1 / 60 : Math.min(0.05, (nowMs - lastFrameTimeMs) / 1000);
+    lastFrameTimeMs = nowMs;
     // Always draw the background
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -2133,38 +2181,46 @@ document.addEventListener("DOMContentLoaded", function () {
     ctx.save();
     ctx.translate(screenShake.x, screenShake.y);
 
-    drawBackground();
+    if (gameMode === "mustardApocalypse") {
+      // Minigame mode draws its own world
+      if (!isPaused && !isShopOpen) {
+        updateMustardApocalypse(dtSec);
+      }
+      drawMustardApocalypse();
+    } else {
+      drawBackground();
 
-    if (gameStarted && !isPaused && !isShopOpen) {
-      // Draw other game elements
-      drawGraveAnimations(); // Draw graves behind other elements
-      drawJumpParticles(); // Draw jump particles
-      drawBloodParticles(); // Draw blood particles
-      drawCoins();
-      drawDeathAnimations();
-      drawPlayer();
-      drawPlayerDeathAnimation();
-      drawEnemies();
-      drawLightningEffects(); // Draw lightning effects
-      drawDamageIndicators(); // Draw damage numbers
+      if (gameStarted && !isPaused && !isShopOpen) {
+        // Draw other game elements
+        drawGraveAnimations(); // Draw graves behind other elements
+        drawJumpParticles(); // Draw jump particles
+        drawBloodParticles(); // Draw blood particles
+        drawCoins();
+        drawDeathAnimations();
+        drawPlayer();
+        drawPlayerDeathAnimation();
+        drawEnemies();
+        drawLightningEffects(); // Draw lightning effects
+        drawDamageIndicators(); // Draw damage numbers
 
-      // Update game state
-      updatePlayer();
-      updatePlayerDeathAnimation();
-      updateEnemies();
-      updateCoins();
-      updateDeathAnimations();
-      updateGraveAnimations(); // Update grave animations
-      updateDamageIndicators(); // Update damage indicators
-      updateRoundTransition(); // Update round transition
-      updateJumpParticles(); // Update jump particles
-      updateBloodParticles(); // Update blood particles
-      updateBlinkAnimation(); // Update blink animation
-      updateLightningEffects(); // Update lightning effects
-      updateScreenShake(); // Update screen shake
+        // Update game state
+        updatePlayer();
+        updatePlayerDeathAnimation();
+        updateEnemies();
+        updateCoins();
+        updateDeathAnimations();
+        updateGraveAnimations(); // Update grave animations
+        updateDamageIndicators(); // Update damage indicators
+        updateRoundTransition(); // Update round transition
+        updateJumpParticles(); // Update jump particles
+        updateBloodParticles(); // Update blood particles
+        updateBlinkAnimation(); // Update blink animation
+        updateLightningEffects(); // Update lightning effects
+        updateScreenShake(); // Update screen shake
 
-      // Draw round transition overlay (if active)
-      drawRoundTransition();
+        // Draw round transition overlay (if active)
+        drawRoundTransition();
+      }
     }
 
     // Restore screen shake transform
@@ -2322,6 +2378,8 @@ document.addEventListener("DOMContentLoaded", function () {
     window.gameStarted = gameStarted;
     currentRound = 1;
     enemiesRemaining = 8;
+    pendingMustardApocalypse = false;
+    gameMode = "main";
 
     // Clear all UI states and start fresh
     clearAllUIStates();
@@ -2394,6 +2452,435 @@ document.addEventListener("DOMContentLoaded", function () {
     }, 300);
   }
 
+  // ----------------------------
+  // Mustard Apocalypse minigame
+  // ----------------------------
+  function mustardClamp(v, min, max) {
+    return Math.max(min, Math.min(max, v));
+  }
+
+  function mustardRand(seed) {
+    // Deterministic-ish hash random for splat variation
+    const x = Math.sin(seed * 999.1234) * 10000;
+    return x - Math.floor(x);
+  }
+
+  function mustardSetMessage(text, ms = 1500) {
+    mustardApocalypse.message.text = text;
+    mustardApocalypse.message.untilMs = performance.now() + ms;
+  }
+
+  function resetMustardApocalypseState(roundNumber) {
+    mustardApocalypse.active = true;
+    mustardApocalypse.roundNumber = roundNumber;
+    mustardApocalypse.startedAtMs = performance.now();
+    mustardApocalypse.player.x = 0;
+    mustardApocalypse.player.z = 0;
+    mustardApocalypse.player.angle = 0;
+    mustardApocalypse.player.health = mustardApocalypse.player.maxHealth;
+    mustardApocalypse.splats.length = 0;
+    mustardApocalypse.enemies.length = 0;
+    mustardApocalypse.projectiles.length = 0;
+    mustardApocalypse.spray.lastAtMs = 0;
+    mustardApocalypse.shoot.lastAtMs = 0;
+
+    // Scale difficulty slightly with round
+    const enemyCount = 4 + Math.floor(roundNumber / 5);
+    for (let i = 0; i < enemyCount; i++) {
+      mustardApocalypse.enemies.push({
+        x:
+          (Math.random() - 0.5) * 18 +
+          (Math.random() > 0.5 ? 6 : -6),
+        z: 14 + Math.random() * 26,
+        health: 3 + Math.floor(roundNumber / 10),
+        maxHealth: 3 + Math.floor(roundNumber / 10),
+        phase: Math.random() * Math.PI * 2,
+        moveSpeed: 0.035 + Math.random() * 0.02 + roundNumber * 0.0015,
+      });
+    }
+
+    // Rewards
+    mustardApocalypse.scoreReward = 100 + roundNumber * 25;
+    mustardApocalypse.coinReward = 8 + Math.floor(roundNumber * 0.6);
+
+    mustardSetMessage("MUSTARD APOCALYPSE!", 1800);
+  }
+
+  function enterMustardApocalypse(roundNumber) {
+    gameMode = "mustardApocalypse";
+    resetMustardApocalypseState(roundNumber);
+  }
+
+  function exitMustardApocalypse(success) {
+    mustardApocalypse.active = false;
+    gameMode = "main";
+
+    if (success) {
+      score += mustardApocalypse.scoreReward;
+      coins += mustardApocalypse.coinReward;
+      scoreElement.textContent = score;
+      coinsElement.textContent = coins;
+      mustardSetMessage("BACK TO JAVIER WORLD!", 1200);
+    }
+  }
+
+  function mustardApocalypseSpray() {
+    const now = performance.now();
+    if (now - mustardApocalypse.spray.lastAtMs < mustardApocalypse.spray.cooldownMs)
+      return;
+    mustardApocalypse.spray.lastAtMs = now;
+
+    // Spray a splat on ground a few units ahead, with slight spread
+    const a = mustardApocalypse.player.angle;
+    const dirX = Math.sin(a);
+    const dirZ = Math.cos(a);
+
+    const baseDist = 4.2;
+    const spread = 1.0;
+    const sx =
+      mustardApocalypse.player.x +
+      dirX * baseDist +
+      (Math.random() - 0.5) * spread;
+    const sz =
+      mustardApocalypse.player.z +
+      dirZ * baseDist +
+      (Math.random() - 0.5) * spread;
+
+    const x = mustardClamp(sx, mustardApocalypse.world.minX, mustardApocalypse.world.maxX);
+    const z = mustardClamp(sz, mustardApocalypse.world.minZ, mustardApocalypse.world.maxZ);
+
+    mustardApocalypse.splats.push({
+      x,
+      z,
+      r: mustardApocalypse.spray.splatRadius * (0.7 + Math.random() * 0.7),
+      seed: now + Math.random() * 1000,
+    });
+  }
+
+  function mustardApocalypseShoot() {
+    const now = performance.now();
+    if (now - mustardApocalypse.shoot.lastAtMs < mustardApocalypse.shoot.cooldownMs)
+      return;
+    mustardApocalypse.shoot.lastAtMs = now;
+
+    const a = mustardApocalypse.player.angle;
+    const dirX = Math.sin(a);
+    const dirZ = Math.cos(a);
+    const speed = 0.8;
+
+    mustardApocalypse.projectiles.push({
+      x: mustardApocalypse.player.x + dirX * 1.2,
+      z: mustardApocalypse.player.z + dirZ * 1.2,
+      vx: dirX * speed,
+      vz: dirZ * speed,
+      lifeMs: 900,
+      spawnedAtMs: now,
+    });
+  }
+
+  function updateMustardApocalypse(dtSec) {
+    const now = performance.now();
+    const elapsedMs = now - mustardApocalypse.startedAtMs;
+    const remainingMs = Math.max(0, mustardApocalypse.timeLimitMs - elapsedMs);
+
+    // Movement: W/Up forward, Down backward; A/D turn
+    const p = mustardApocalypse.player;
+    const turnLeft = keys["a"] || keys["arrowleft"];
+    const turnRight = keys["d"] || keys["arrowright"];
+    if (turnLeft) p.angle -= p.turnSpeed;
+    if (turnRight) p.angle += p.turnSpeed;
+
+    const forward = keys["w"] || keys["arrowup"];
+    const backward = keys["arrowdown"];
+    const moveDir = (forward ? 1 : 0) + (backward ? -1 : 0);
+    if (moveDir !== 0) {
+      const dirX = Math.sin(p.angle);
+      const dirZ = Math.cos(p.angle);
+      p.x += dirX * p.speed * moveDir * (dtSec * 60);
+      p.z += dirZ * p.speed * moveDir * (dtSec * 60);
+      p.x = mustardClamp(p.x, mustardApocalypse.world.minX, mustardApocalypse.world.maxX);
+      p.z = mustardClamp(p.z, mustardApocalypse.world.minZ, mustardApocalypse.world.maxZ);
+    }
+
+    // Update projectiles and collisions
+    for (let i = mustardApocalypse.projectiles.length - 1; i >= 0; i--) {
+      const pr = mustardApocalypse.projectiles[i];
+      const age = now - pr.spawnedAtMs;
+      if (age > pr.lifeMs) {
+        mustardApocalypse.projectiles.splice(i, 1);
+        continue;
+      }
+      pr.x += pr.vx * (dtSec * 60);
+      pr.z += pr.vz * (dtSec * 60);
+
+      // Collision with enemies (2D distance in x/z)
+      for (let j = mustardApocalypse.enemies.length - 1; j >= 0; j--) {
+        const e = mustardApocalypse.enemies[j];
+        const dx = e.x - pr.x;
+        const dz = e.z - pr.z;
+        if (dx * dx + dz * dz < 0.9 * 0.9) {
+          e.health -= 1;
+          mustardApocalypse.projectiles.splice(i, 1);
+          if (e.health <= 0) {
+            mustardApocalypse.enemies.splice(j, 1);
+            mustardSetMessage("KETCHUP DOWN!", 700);
+          }
+          break;
+        }
+      }
+    }
+
+    // Enemy movement and damage
+    for (let i = mustardApocalypse.enemies.length - 1; i >= 0; i--) {
+      const e = mustardApocalypse.enemies[i];
+      e.phase += 0.06;
+      const wobbleX = Math.sin(e.phase) * 0.01;
+      const wobbleZ = Math.cos(e.phase * 1.3) * 0.01;
+
+      const dx = p.x - e.x;
+      const dz = p.z - e.z;
+      const dist = Math.max(0.001, Math.sqrt(dx * dx + dz * dz));
+      const ux = dx / dist;
+      const uz = dz / dist;
+
+      e.x += (ux * e.moveSpeed + wobbleX) * (dtSec * 60);
+      e.z += (uz * e.moveSpeed + wobbleZ) * (dtSec * 60);
+
+      if (dist < 1.2) {
+        // Damage over time while touching
+        p.health -= 18 * dtSec;
+      }
+    }
+
+    // Win/lose conditions
+    const paintedEnough = mustardApocalypse.splats.length >= mustardApocalypse.spray.goalSplats;
+    const allDead = mustardApocalypse.enemies.length === 0;
+    if (paintedEnough && allDead) {
+      exitMustardApocalypse(true);
+      return;
+    }
+    if (p.health <= 0) {
+      mustardSetMessage("YOU GOT KETCHUPED...", 1200);
+      exitMustardApocalypse(false);
+      return;
+    }
+    if (remainingMs <= 0) {
+      mustardSetMessage("TIME'S UP! MUSTARD FAILED.", 1200);
+      exitMustardApocalypse(false);
+    }
+  }
+
+  function mustardProjectToScreen(worldX, worldZ) {
+    // Camera-space transform (angle 0 faces +z)
+    const p = mustardApocalypse.player;
+    const dx = worldX - p.x;
+    const dz = worldZ - p.z;
+    const ca = Math.cos(-p.angle);
+    const sa = Math.sin(-p.angle);
+    const lx = dx * ca - dz * sa;
+    const lz = dx * sa + dz * ca;
+    return { lx, lz };
+  }
+
+  function drawMustardApocalypse() {
+    const now = performance.now();
+    const elapsedMs = now - mustardApocalypse.startedAtMs;
+    const remainingMs = Math.max(0, mustardApocalypse.timeLimitMs - elapsedMs);
+
+    // Sky
+    const sky = ctx.createLinearGradient(0, 0, 0, mustardApocalypse.horizonY);
+    sky.addColorStop(0, "#0b1026");
+    sky.addColorStop(1, "#3b2a2a");
+    ctx.fillStyle = sky;
+    ctx.fillRect(0, 0, canvas.width, mustardApocalypse.horizonY);
+
+    // Ground
+    const groundGrad = ctx.createLinearGradient(
+      0,
+      mustardApocalypse.horizonY,
+      0,
+      canvas.height,
+    );
+    groundGrad.addColorStop(0, "#2a2a2a");
+    groundGrad.addColorStop(1, "#0f0f0f");
+    ctx.fillStyle = groundGrad;
+    ctx.fillRect(0, mustardApocalypse.horizonY, canvas.width, canvas.height);
+
+    // Perspective constants
+    const projScale = (canvas.width / 2) / Math.tan(mustardApocalypse.fovRad / 2);
+    const cx = canvas.width / 2;
+    const horizonY = mustardApocalypse.horizonY;
+
+    // Draw a subtle ground grid
+    ctx.save();
+    ctx.globalAlpha = 0.22;
+    ctx.strokeStyle = "#2ecc71";
+    ctx.lineWidth = 1;
+    for (let gz = 2; gz <= 40; gz += 2) {
+      // horizontal lines in world space (z constant)
+      const a = mustardProjectToScreen(-20, gz);
+      const b = mustardProjectToScreen(20, gz);
+      if (a.lz <= 0.2 || b.lz <= 0.2) continue;
+      const yA = horizonY + (mustardApocalypse.camHeight * projScale) / a.lz;
+      const yB = horizonY + (mustardApocalypse.camHeight * projScale) / b.lz;
+      const xA = cx + (a.lx * projScale) / a.lz;
+      const xB = cx + (b.lx * projScale) / b.lz;
+      ctx.beginPath();
+      ctx.moveTo(xA, yA);
+      ctx.lineTo(xB, yB);
+      ctx.stroke();
+    }
+    ctx.restore();
+
+    // Collect drawable sprites (splats + enemies + projectiles) and draw far-to-near
+    const sprites = [];
+
+    for (const s of mustardApocalypse.splats) {
+      const t = mustardProjectToScreen(s.x, s.z);
+      if (t.lz <= 0.25) continue;
+      sprites.push({ kind: "splat", lz: t.lz, lx: t.lx, s });
+    }
+    for (const e of mustardApocalypse.enemies) {
+      const t = mustardProjectToScreen(e.x, e.z);
+      if (t.lz <= 0.25) continue;
+      sprites.push({ kind: "enemy", lz: t.lz, lx: t.lx, e });
+    }
+    for (const pr of mustardApocalypse.projectiles) {
+      const t = mustardProjectToScreen(pr.x, pr.z);
+      if (t.lz <= 0.25) continue;
+      sprites.push({ kind: "proj", lz: t.lz, lx: t.lx, pr });
+    }
+
+    sprites.sort((a, b) => b.lz - a.lz);
+
+    for (const sp of sprites) {
+      const screenX = cx + (sp.lx * projScale) / sp.lz;
+      const groundY = horizonY + (mustardApocalypse.camHeight * projScale) / sp.lz;
+      const scale = projScale / sp.lz;
+
+      if (sp.kind === "splat") {
+        const rPx = sp.s.r * scale * 0.6;
+        const wob = mustardRand(sp.s.seed) * 0.25 + 0.75;
+        ctx.save();
+        ctx.globalAlpha = 0.85;
+        const g = ctx.createRadialGradient(
+          screenX,
+          groundY,
+          0,
+          screenX,
+          groundY,
+          rPx,
+        );
+        g.addColorStop(0, `rgba(255, 234, 0, ${0.9 * wob})`);
+        g.addColorStop(1, "rgba(156, 136, 0, 0)");
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.ellipse(screenX, groundY, rPx, rPx * 0.55, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      } else if (sp.kind === "enemy") {
+        const e = sp.e;
+        const h = 1.65;
+        const topY = horizonY + ((mustardApocalypse.camHeight - h) * projScale) / sp.lz;
+        const wPx = scale * 0.85;
+        ctx.save();
+        // ketchup body
+        ctx.fillStyle = "#c0392b";
+        ctx.fillRect(screenX - wPx / 2, topY, wPx, groundY - topY);
+        // highlight
+        ctx.globalAlpha = 0.35;
+        ctx.fillStyle = "#ff6b6b";
+        ctx.fillRect(screenX - wPx / 2 + wPx * 0.15, topY + 4, wPx * 0.18, groundY - topY - 8);
+        ctx.globalAlpha = 1;
+        // angry eyes
+        ctx.fillStyle = "#111";
+        ctx.fillRect(screenX - wPx * 0.2, topY + (groundY - topY) * 0.22, wPx * 0.12, wPx * 0.12);
+        ctx.fillRect(screenX + wPx * 0.08, topY + (groundY - topY) * 0.22, wPx * 0.12, wPx * 0.12);
+
+        // health bar
+        const hpPct = Math.max(0, e.health / e.maxHealth);
+        ctx.fillStyle = "rgba(0,0,0,0.55)";
+        ctx.fillRect(screenX - wPx / 2, topY - 10, wPx, 6);
+        ctx.fillStyle = "#e74c3c";
+        ctx.fillRect(screenX - wPx / 2, topY - 10, wPx * hpPct, 6);
+        ctx.restore();
+      } else if (sp.kind === "proj") {
+        ctx.save();
+        ctx.globalAlpha = 0.9;
+        ctx.fillStyle = "#ffea00";
+        const r = 0.22 * scale;
+        ctx.beginPath();
+        ctx.arc(screenX, groundY - 8 * (scale / projScale), Math.max(2, r), 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+    }
+
+    // HUD
+    ctx.save();
+    ctx.fillStyle = "rgba(0,0,0,0.35)";
+    ctx.fillRect(10, 10, 310, 92);
+    ctx.fillStyle = "#fff";
+    ctx.font = "bold 14px Arial";
+    ctx.fillText(`MUSTARD APOCALYPSE (Round ${mustardApocalypse.roundNumber})`, 20, 32);
+
+    ctx.font = "13px Arial";
+    ctx.fillText(
+      `Paint: ${mustardApocalypse.splats.length}/${mustardApocalypse.spray.goalSplats}`,
+      20,
+      54,
+    );
+    ctx.fillText(`Ketchup Enemies: ${mustardApocalypse.enemies.length}`, 20, 72);
+    ctx.fillText(`Time: ${(remainingMs / 1000).toFixed(1)}s`, 20, 90);
+
+    // HP bar
+    const hpPct = Math.max(0, mustardApocalypse.player.health / mustardApocalypse.player.maxHealth);
+    ctx.fillStyle = "rgba(0,0,0,0.6)";
+    ctx.fillRect(canvas.width - 220, 18, 200, 14);
+    ctx.fillStyle = "#2ecc71";
+    ctx.fillRect(canvas.width - 220, 18, 200 * hpPct, 14);
+    ctx.strokeStyle = "#fff";
+    ctx.strokeRect(canvas.width - 220, 18, 200, 14);
+    ctx.fillStyle = "#fff";
+    ctx.font = "12px Arial";
+    ctx.fillText("HP", canvas.width - 250, 30);
+
+    // Controls hint
+    ctx.fillStyle = "rgba(0,0,0,0.35)";
+    ctx.fillRect(10, canvas.height - 58, 520, 48);
+    ctx.fillStyle = "#fff";
+    ctx.font = "12px Arial";
+    ctx.fillText(
+      "W/↑ forward, ↓ back, A/D turn | Click/Space/K = spray mustard | J/Right-click = shoot",
+      20,
+      canvas.height - 30,
+    );
+
+    // Crosshair
+    ctx.strokeStyle = "rgba(255,255,255,0.85)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(canvas.width / 2 - 8, canvas.height / 2);
+    ctx.lineTo(canvas.width / 2 + 8, canvas.height / 2);
+    ctx.moveTo(canvas.width / 2, canvas.height / 2 - 8);
+    ctx.lineTo(canvas.width / 2, canvas.height / 2 + 8);
+    ctx.stroke();
+
+    // Message
+    if (mustardApocalypse.message.text && now < mustardApocalypse.message.untilMs) {
+      ctx.save();
+      ctx.fillStyle = "rgba(0,0,0,0.55)";
+      ctx.fillRect(canvas.width / 2 - 220, 70, 440, 44);
+      ctx.fillStyle = "#ffea00";
+      ctx.font = "bold 18px Arial";
+      ctx.textAlign = "center";
+      ctx.fillText(mustardApocalypse.message.text, canvas.width / 2, 98);
+      ctx.restore();
+    }
+
+    ctx.restore();
+  }
+
   // Add shake animation keyframes to document
   const style = document.createElement("style");
   style.textContent = `
@@ -2414,5 +2901,5 @@ document.addEventListener("DOMContentLoaded", function () {
   loadHighScore();
 
   // Start the game loop (will only render active elements when gameStarted is true)
-  gameLoop();
+  requestAnimationFrame(gameLoop);
 }); // End of DOMContentLoaded event listener
