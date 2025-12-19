@@ -17,6 +17,7 @@ document.addEventListener("DOMContentLoaded", function () {
   const highScoreElement = document.getElementById("highScore");
   const coinsElement = document.getElementById("coins");
   const startRoundButton = document.getElementById("startRoundButton");
+  const shopHint = document.getElementById("shopHint");
 
   // Game state
   let score = 0;
@@ -26,6 +27,12 @@ document.addEventListener("DOMContentLoaded", function () {
   let isShopOpen = false;
   let gameStarted = false; // Track if game has started
   let lastDirection = 1; // 1 for right, -1 for left
+
+  // Difficulty / settings (synced from window.* toggles in index.html)
+  let evanModeEnabled = false;
+  let deathWishEnabled = false;
+  let lastEvanModeEnabled = false;
+  let lastDeathWishEnabled = false;
 
   // Health regeneration system
   let lastDamageTime = 0;
@@ -85,6 +92,7 @@ document.addEventListener("DOMContentLoaded", function () {
     shoot: {
       cooldownMs: 220,
       lastAtMs: 0,
+      homingTurnRate: 0.09, // how quickly shots steer toward ketchup
     },
     splats: [], // {x,z,r,seed}
     enemies: [], // {x,z,health,maxHealth,phase,moveSpeed}
@@ -132,6 +140,114 @@ document.addEventListener("DOMContentLoaded", function () {
       particles: [],
     },
   };
+
+  // Keep base stats + upgrades separate so modes can be applied cleanly
+  const basePlayerStats = {
+    speed: player.speed,
+    punchDamage: player.punchDamage,
+    maxHealth: player.maxHealth,
+  };
+  const playerUpgrades = {
+    strength: 0,
+    speed: 0,
+    health: 0,
+  };
+
+  function applyPlayerStatsFromUpgradesAndModes(options = {}) {
+    const { evanJustEnabled = false } = options;
+
+    const oldMax = player.maxHealth;
+    const oldHealthRatio = oldMax > 0 ? player.health / oldMax : 1;
+
+    // Base + upgrades
+    let nextSpeed = basePlayerStats.speed * Math.pow(1.1, playerUpgrades.speed);
+    let nextPunchDamage = basePlayerStats.punchDamage + 5 * playerUpgrades.strength;
+    let nextMaxHealth = basePlayerStats.maxHealth + 20 * playerUpgrades.health;
+
+    // Evan Mode: double stats, but start at half health when toggled on
+    if (evanModeEnabled) {
+      nextSpeed *= 2;
+      nextPunchDamage *= 2;
+      nextMaxHealth *= 2;
+    }
+
+    player.speed = nextSpeed;
+    player.punchDamage = Math.round(nextPunchDamage);
+    player.maxHealth = Math.round(nextMaxHealth);
+
+    if (evanModeEnabled && evanJustEnabled) {
+      player.health = Math.floor(player.maxHealth / 2);
+    } else {
+      player.health = Math.min(player.maxHealth, Math.max(1, Math.round(oldHealthRatio * player.maxHealth)));
+    }
+  }
+
+  function syncDifficultyFromWindow() {
+    const nextEvan = !!window.evanModeEnabled;
+    const nextDeathWish = !!window.deathWishEnabled;
+
+    const evanChanged = nextEvan !== evanModeEnabled;
+    const deathWishChanged = nextDeathWish !== deathWishEnabled;
+
+    evanModeEnabled = nextEvan;
+    deathWishEnabled = nextDeathWish;
+
+    if (evanChanged) {
+      applyPlayerStatsFromUpgradesAndModes({ evanJustEnabled: evanModeEnabled });
+    }
+
+    lastEvanModeEnabled = evanModeEnabled;
+    lastDeathWishEnabled = deathWishEnabled;
+
+    // If death wish changed mid-round, keep enemiesRemaining consistent by scaling the remaining spawns.
+    // (This is simple + predictable: it affects only future spawns, not enemies already alive.)
+    if (deathWishChanged) {
+      const intendedTotal = getEnemiesPerRound(currentRound);
+      const defeated = Math.max(0, intendedTotal - enemiesRemaining - enemies.length);
+      enemiesRemaining = Math.max(0, intendedTotal - defeated - enemies.length);
+    }
+  }
+
+  function getEnemiesPerRound(round) {
+    // Easier early curve; ramps up later.
+    let base;
+    if (round <= 1) base = 6;
+    else if (round === 2) base = 8;
+    else if (round === 3) base = 10;
+    else if (round === 4) base = 12;
+    else base = 12 + (round - 4) * 3;
+
+    const mult = deathWishEnabled ? 3 : 1;
+    return base * mult;
+  }
+
+  function getRoundSpeedMultiplier(round) {
+    const t = Math.max(0, round - 1);
+    return 1 + Math.pow(t, 1.15) * 0.05; // gentler early scaling
+  }
+
+  function getRoundHealthBonus(round) {
+    const t = Math.max(0, round - 1);
+    return Math.floor(Math.pow(t, 1.1) * 4); // gentler early scaling
+  }
+
+  function updateShopIndicator() {
+    if (!shopButton || !shopHint) return;
+    const shouldHint =
+      gameStarted &&
+      !player.isDead &&
+      gameMode === "main" &&
+      !isShopOpen &&
+      coins >= 20;
+
+    if (shouldHint) {
+      shopButton.classList.add("shop-available");
+      shopHint.style.display = "block";
+    } else {
+      shopButton.classList.remove("shop-available");
+      shopHint.style.display = "none";
+    }
+  }
 
   // Enemies
   const enemies = [];
@@ -404,7 +520,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Reset round system
     currentRound = 1;
-    enemiesRemaining = 8;
+    enemiesRemaining = getEnemiesPerRound(currentRound);
     isRoundTransition = false;
     roundTransitionTimer = 0;
 
@@ -412,7 +528,10 @@ document.addEventListener("DOMContentLoaded", function () {
     player.x = 100;
     player.y = 300;
     player.velocity = { x: 0, y: 0 };
-    player.health = player.maxHealth;
+    playerUpgrades.strength = 0;
+    playerUpgrades.speed = 0;
+    playerUpgrades.health = 0;
+    applyPlayerStatsFromUpgradesAndModes({ evanJustEnabled: evanModeEnabled });
     player.isDead = false;
     player.deathAnimation.active = false;
     player.deathAnimation.particles = [];
@@ -447,16 +566,17 @@ document.addEventListener("DOMContentLoaded", function () {
   function upgradePlayer(item) {
     switch (item) {
       case "strength":
-        player.punchDamage += 5;
+        playerUpgrades.strength += 1;
         break;
       case "speed":
-        player.speed *= 1.1; // 10% increase
+        playerUpgrades.speed += 1;
         break;
       case "health":
-        player.maxHealth += 20;
-        player.health += 20;
+        playerUpgrades.health += 1;
         break;
     }
+
+    applyPlayerStatsFromUpgradesAndModes();
   }
 
   // Electrocution attack function
@@ -663,8 +783,9 @@ document.addEventListener("DOMContentLoaded", function () {
     // Random jump cooldown between 2-5 seconds (120-300 frames at 60fps)
     const randomJumpCooldown = 120 + Math.floor(Math.random() * 180);
 
-    // Scale properties based on current round
-    const roundMultiplier = 1 + currentRound * 0.08;
+    // Scale properties based on current round (gentler early rounds)
+    const roundMultiplier = getRoundSpeedMultiplier(currentRound);
+    const healthBonus = getRoundHealthBonus(currentRound);
 
     const enemy = {
       x: spawnFromLeft ? -50 : canvas.width + 50, // Spawn from left or right
@@ -672,8 +793,8 @@ document.addEventListener("DOMContentLoaded", function () {
       width: enemyType.size.width,
       height: enemyType.size.height,
       speed: enemyType.speed * roundMultiplier + Math.random() * 0.5,
-      health: enemyType.health + (currentRound - 1) * 5,
-      maxHealth: enemyType.health + (currentRound - 1) * 5,
+      health: enemyType.health + healthBonus,
+      maxHealth: enemyType.health + healthBonus,
       color: enemyType.color,
       velocity: { x: 0, y: 0 }, // Add velocity for jumping
       isJumping: false,
@@ -684,6 +805,12 @@ document.addEventListener("DOMContentLoaded", function () {
       type: enemyType.name,
       points: enemyType.points,
     };
+
+    // Evan mode: keep player busted, but enemies are a bit squishier too
+    if (evanModeEnabled) {
+      enemy.maxHealth = Math.max(1, Math.round(enemy.maxHealth * 0.5));
+      enemy.health = Math.min(enemy.health, enemy.maxHealth);
+    }
 
     enemies.push(enemy);
   }
@@ -1004,7 +1131,7 @@ document.addEventListener("DOMContentLoaded", function () {
       }
 
       // Update progress bar
-      const totalEnemies = 8 + (currentRound - 1) * 3;
+      const totalEnemies = getEnemiesPerRound(currentRound);
       const enemiesDefeated = totalEnemies - enemiesRemaining - enemies.length;
       const progressPercentage = (enemiesDefeated / totalEnemies) * 100;
       document.getElementById("roundProgressBar").style.width =
@@ -2027,7 +2154,7 @@ document.addEventListener("DOMContentLoaded", function () {
     isRoundTransition = true;
     roundTransitionTimer = 0;
     currentRound++;
-    enemiesRemaining = 8 + (currentRound - 1) * 3; // More enemies each round, ramped up
+    enemiesRemaining = getEnemiesPerRound(currentRound);
 
     // Every 5 rounds, queue the Mustard Apocalypse minigame before the round begins
     pendingMustardApocalypse = currentRound % 5 === 0;
@@ -2174,6 +2301,8 @@ document.addEventListener("DOMContentLoaded", function () {
     const dtSec =
       lastFrameTimeMs === 0 ? 1 / 60 : Math.min(0.05, (nowMs - lastFrameTimeMs) / 1000);
     lastFrameTimeMs = nowMs;
+    syncDifficultyFromWindow();
+    updateShopIndicator();
     // Always draw the background
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -2377,7 +2506,7 @@ document.addEventListener("DOMContentLoaded", function () {
     gameStarted = true;
     window.gameStarted = gameStarted;
     currentRound = 1;
-    enemiesRemaining = 8;
+    enemiesRemaining = getEnemiesPerRound(currentRound);
     pendingMustardApocalypse = false;
     gameMode = "main";
 
@@ -2610,6 +2739,41 @@ document.addEventListener("DOMContentLoaded", function () {
         mustardApocalypse.projectiles.splice(i, 1);
         continue;
       }
+
+      // Homing: steer toward nearest ketchup enemy
+      if (mustardApocalypse.enemies.length > 0) {
+        let nearest = null;
+        let bestD2 = Infinity;
+        for (const e of mustardApocalypse.enemies) {
+          const dx = e.x - pr.x;
+          const dz = e.z - pr.z;
+          const d2 = dx * dx + dz * dz;
+          if (d2 < bestD2) {
+            bestD2 = d2;
+            nearest = e;
+          }
+        }
+
+        if (nearest) {
+          const dx = nearest.x - pr.x;
+          const dz = nearest.z - pr.z;
+          const len = Math.max(0.0001, Math.sqrt(dx * dx + dz * dz));
+          const desiredX = dx / len;
+          const desiredZ = dz / len;
+
+          const curLen = Math.max(0.0001, Math.sqrt(pr.vx * pr.vx + pr.vz * pr.vz));
+          const curX = pr.vx / curLen;
+          const curZ = pr.vz / curLen;
+
+          const turn = mustardApocalypse.shoot.homingTurnRate * (dtSec * 60);
+          const steerX = curX + (desiredX - curX) * turn;
+          const steerZ = curZ + (desiredZ - curZ) * turn;
+          const steerLen = Math.max(0.0001, Math.sqrt(steerX * steerX + steerZ * steerZ));
+          pr.vx = (steerX / steerLen) * curLen;
+          pr.vz = (steerZ / steerLen) * curLen;
+        }
+      }
+
       pr.x += pr.vx * (dtSec * 60);
       pr.z += pr.vz * (dtSec * 60);
 

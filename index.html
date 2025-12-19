@@ -60,6 +60,39 @@
                 position: absolute;
             }
 
+            #shopHint {
+                position: absolute;
+                top: 44px;
+                right: 10px;
+                font-size: 12px;
+                color: rgba(255, 234, 0, 0.95);
+                text-shadow: 0 0 10px rgba(255, 234, 0, 0.6);
+                display: none;
+                pointer-events: none;
+                background: rgba(0, 0, 0, 0.35);
+                padding: 4px 8px;
+                border-radius: 8px;
+                border: 1px solid rgba(255, 234, 0, 0.25);
+            }
+
+            #shopButton.shop-available {
+                animation: shopPulse 1.2s infinite;
+                border-color: rgba(255, 234, 0, 0.9);
+                box-shadow: 0 0 18px rgba(255, 234, 0, 0.55);
+            }
+
+            @keyframes shopPulse {
+                0% {
+                    transform: translateY(0) scale(1);
+                }
+                50% {
+                    transform: translateY(-1px) scale(1.05);
+                }
+                100% {
+                    transform: translateY(0) scale(1);
+                }
+            }
+
             .start-round-button {
                 bottom: 20px;
                 left: 50%;
@@ -543,6 +576,7 @@
                     <div>Coins: <span id="coins">0</span></div>
                 </div>
                 <button id="shopButton" class="ui-button">Shop</button>
+                <div id="shopHint">Shop available! Press S</div>
                 <button id="startRoundButton" class="start-round-button">
                     Start Round
                 </button>
@@ -684,6 +718,49 @@
                                         type="checkbox"
                                         id="screenShakeToggle"
                                         checked
+                                    />
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="setting-category">
+                        <div
+                            class="category-header collapsed"
+                            data-category="difficulty"
+                        >
+                            <h3>😈 Difficulty</h3>
+                            <span class="collapse-icon">▶</span>
+                        </div>
+                        <div
+                            class="category-content collapsed"
+                            id="difficulty-content"
+                        >
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <h4>🧪 Evan Mode</h4>
+                                    <p>
+                                        Double attack, speed, and max health —
+                                        but you start at half health.
+                                    </p>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input
+                                        type="checkbox"
+                                        id="evanModeToggle"
+                                    />
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <h4>💀 Death Wish</h4>
+                                    <p>3x more enemies per round.</p>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input
+                                        type="checkbox"
+                                        id="deathWishToggle"
                                     />
                                     <span class="slider"></span>
                                 </label>
@@ -849,6 +926,10 @@
                     document.getElementById("bloodCountValue");
                 const screenShakeToggle =
                     document.getElementById("screenShakeToggle");
+                const evanModeToggle =
+                    document.getElementById("evanModeToggle");
+                const deathWishToggle =
+                    document.getElementById("deathWishToggle");
                 const overlay = document.getElementById("overlay");
 
                 // Show settings from main menu
@@ -953,10 +1034,26 @@
                     });
                 }
 
+                // Evan mode toggle
+                if (evanModeToggle) {
+                    evanModeToggle.addEventListener("change", function () {
+                        window.evanModeEnabled = this.checked;
+                    });
+                }
+
+                // Death wish toggle
+                if (deathWishToggle) {
+                    deathWishToggle.addEventListener("change", function () {
+                        window.deathWishEnabled = this.checked;
+                    });
+                }
+
                 // Initialize settings
                 window.bloodEffectsEnabled = true;
                 window.bloodParticleCount = 30;
                 window.screenShakeEnabled = true;
+                window.evanModeEnabled = false;
+                window.deathWishEnabled = false;
             });
 
             // Add CSS for shop animation
